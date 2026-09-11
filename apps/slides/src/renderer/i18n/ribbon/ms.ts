@@ -26,6 +26,8 @@ export const ms = {
   ribbonLineDash: 'Putus-putus',
   ribbonLineDot: 'Bertitik',
   ribbonLineDashDot: 'Putus-titik',
+  ribbonFileNew: 'Baharu',
+  ribbonFileClose: 'Tutup',
   ribbonFileOpen: 'Buka…',
   ribbonFileSave: 'Simpan',
   ribbonFileSaveAs: 'Simpan Sebagai…',

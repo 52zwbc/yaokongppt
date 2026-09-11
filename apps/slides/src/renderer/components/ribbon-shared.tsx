@@ -326,6 +326,10 @@ export interface Props {
   editing: boolean
   autoSave: boolean
   onAutoSaveChange: (on: boolean) => void
+  /** New blank presentation (file menu 新建) */
+  onNew: () => void
+  /** Close the current file back to a blank presentation (file menu 关闭) */
+  onCloseFile: () => void
   onOpen: () => void
   onSave: () => void
   onUndo: () => void

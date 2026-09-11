@@ -61,7 +61,6 @@ import {
   getRunLinks,
   readHeaderFooter,
   createBlankPptx,
-  addElement,
   copySlide,
   type SlideBundle,
   listSlideLayouts,
@@ -4370,52 +4369,6 @@ function appIconImage(): Electron.NativeImage {
   return nativeImage.createEmpty()
 }
 
-const FIRST_RUN_MARKER = () => join(app.getPath('userData'), 'slides-first-run.marker')
-
-/** 首用的帮助页文字（与状态栏一致）：软件第一次启动时自动打开一页 pptx 展示。 */
-export const WELCOME_HELP_TEXT = '请用微信小程序《52中文编程》查看使用帮助和联系作者'
-
-/**
- * 首次运行判断：以 userData 下的标记文件为准。首次返回 true 并落下标记
- * （之后不再弹帮助页）；已有标记则返回 false。
- */
-function isFirstRun(): boolean {
-  const marker = FIRST_RUN_MARKER()
-  if (existsSync(marker)) return false
-  try {
-    mkdirSync(dirname(marker), { recursive: true })
-    writeFileSync(marker, new Date().toISOString())
-  } catch {
-    /* best-effort：标记写失败也只影响下次是否再弹一次 */
-  }
-  return true
-}
-
-/** 构建一页帮助 pptx（仅首页，居中显示帮助文字）。 */
-async function buildWelcomePptx(): Promise<Uint8Array> {
-  const opened = await openPptx(await createBlankPptx())
-  const slide = opened.deck.slides[0]!
-  const cx = opened.deck.size.cx
-  const cy = opened.deck.size.cy
-  addElement(slide, {
-    kind: 'textbox',
-    offset: {
-      x: Math.round(cx * 0.08),
-      y: Math.round(cy * 0.42),
-      cx: Math.round(cx * 0.84),
-      cy: Math.round(cy * 0.16),
-    },
-    paragraphs: [
-      {
-        runs: [{ text: WELCOME_HELP_TEXT, fontSize: 28, bold: true }],
-        align: 'center',
-      },
-    ],
-    bodyPr: { wrap: 'square', anchor: 'ctr' },
-  })
-  return await savePptx(opened)
-}
-
 /** 唤起主窗口（从托盘/被其它实例唤起时复用当前实例）：还原最小化、显示并聚焦。 */
 function showMainWin(): void {
   const w = mainWin
@@ -4597,6 +4550,7 @@ export function buildSlidesMenu(): Menu {
     {
       label: tm('menuFile'),
       submenu: [
+        { label: tm('menuNew'), accelerator: 'CmdOrCtrl+N', click: () => send('new') },
         { label: tm('menuOpen'), accelerator: 'CmdOrCtrl+O', click: () => send('open') },
         {
           // Detached second editor window on the same saved file: it attaches to
@@ -4620,6 +4574,9 @@ export function buildSlidesMenu(): Menu {
         { label: tm('menuExportPdf'), click: () => send('export-pdf') },
         { label: tm('menuExportImages'), click: () => send('export-images') },
         { label: tm('menuPrint'), accelerator: 'CmdOrCtrl+P', click: () => send('print') },
+        { type: 'separator' },
+        // 关闭当前文件：回到空白演示文稿（单文档应用，不关窗口）
+        { label: tm('menuClose'), click: () => send('close') },
         { type: 'separator' },
         closeActiveTabHook
           ? {
@@ -4797,30 +4754,8 @@ export function startSlidesStandalone(): void {
     registerProjectIpc()
     Menu.setApplicationMenu(buildSlidesMenu())
     const win = createSlidesWindow(pendingOpenPath)
-    // 首次运行：未通过命令行/打开方式传入文件时，自动打开一页帮助 pptx
-    if (isFirstRun() && !pendingOpenPath) {
-      win.webContents.once('did-finish-load', async () => {
-        try {
-          const opened = await openPptx(await buildWelcomePptx())
-          sessions.set(win.webContents.id, {
-            path: '',
-            opened,
-            fitWidthPx: 1280,
-            undoStack: [],
-            redoStack: [],
-          })
-          scheduleHistoryNotify(sessions.get(win.webContents.id)!)
-          win.webContents.send('slides:opened', {
-            path: '',
-            slides: buildAllRenderSlides(opened, 1280),
-            size: { cx: opened.deck.size.cx, cy: opened.deck.size.cy },
-            defaultFont: deckDefaultFont(opened),
-          })
-        } catch {
-          /* ignore */
-        }
-      })
-    }
+    // 0.6.1 起：启动只显示新建的空白文件，不再自动打开一页帮助 pptx
+    // （渲染进程挂载后无待打开文件时会自动 newBlank。）
     // 启动即创建托盘（最小化后仍需靠托盘“显示/退出”才能恢复或退出）
     ensureTray()
     app.on('activate', () => {

@@ -25,6 +25,8 @@ export const zhTW = {
   ribbonLineDash: '虛線',
   ribbonLineDot: '點線',
   ribbonLineDashDot: '點劃線',
+  ribbonFileNew: '新增',
+  ribbonFileClose: '關閉',
   ribbonFileOpen: '開啟…',
   ribbonFileSave: '儲存',
   ribbonFileSaveAs: '另存新檔…',

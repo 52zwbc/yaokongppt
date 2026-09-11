@@ -27,6 +27,8 @@ export const ko = {
   ribbonLineDot: '점선',
   ribbonLineDashDot: '일점쇄선',
   // file menu / quick access
+  ribbonFileNew: '새로 만들기',
+  ribbonFileClose: '닫기',
   ribbonFileOpen: '열기…',
   ribbonFileSave: '저장',
   ribbonFileSaveAs: '다른 이름으로 저장…',

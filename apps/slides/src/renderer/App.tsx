@@ -104,6 +104,8 @@ import * as tableActions from './table-actions'
 import * as styleActions from './style-actions'
 import { handleGlobalKeydown } from './keyboard-actions'
 import { buildCtxItems } from './context-menu-items'
+import donateQr from './assets/donate-qrcode.jpg'
+import { isDonateModalSuppressed } from './donate-suppress'
 
 const _IS_MAC = navigator.platform.toLowerCase().includes('mac')
 
@@ -1066,6 +1068,16 @@ export function App() {
     return r
   }, [applyOpen])
 
+  /** 文件 → 新建：回到新的空白演示文稿（与“打开”一致：直接替换当前会话，不弹存盘提示） */
+  const newFile = useCallback(() => {
+    void newBlank()
+  }, [newBlank])
+
+  /** 文件 → 关闭：关闭当前文件，回到空白演示文稿（单文档应用：关闭后即新建空白） */
+  const closeFile = useCallback(() => {
+    void newBlank()
+  }, [newBlank])
+
   // Files are pushed open by the main process (double-click/command line); with no pending file the
   // window lands directly in the editor on a fresh blank deck (the AI panel carries the generate-from-prompt flow).
   // StrictMode runs the mount effect twice, but the pending queue can only be consumed once, so the
@@ -1586,6 +1598,8 @@ export function App() {
   const [remoteControl, setRemoteControl] = useState<RemoteControlInfo | null>(null)
   const [remoteControlModal, setRemoteControlModal] = useState(false)
   const [rcSelected, setRcSelected] = useState(0)
+  // 启动赞赏弹窗：每次启动显示一次；屏蔽标记读写见 donate-suppress.ts（下个版本启用）
+  const [donateOpen, setDonateOpen] = useState(() => !isDonateModalSuppressed())
   // 防盗版：验证改由 Web 服务端（remote-control.ts）拦截；本状态仅预留给 liteppt:// 回跳提示
   const [licenseBanner, setLicenseBanner] = useState<
     null | { type: 'granted' | 'denied' | 'need'; msg: string }
@@ -1993,6 +2007,8 @@ export function App() {
         return
       }
       if (cmd === 'open') void openDialog()
+      else if (cmd === 'new') void newBlank()
+      else if (cmd === 'close') void newBlank()
       else if (cmd === 'save') void save()
       else if (cmd === 'save-as') void saveAs()
       // macOS has no File ribbon tab, so these only exist in the menu
@@ -2020,6 +2036,7 @@ export function App() {
     })
   }, [
     openDialog,
+    newBlank,
     save,
     saveAs,
     exportPdf,
@@ -2747,6 +2764,8 @@ export function App() {
         editing={!!editing || !!editingCell}
         autoSave={autoSave}
         onAutoSaveChange={setAutoSave}
+        onNew={newFile}
+        onCloseFile={closeFile}
         onOpen={() => void openDialog()}
         onSave={() => void save()}
         onUndo={() => void undo()}
@@ -3875,16 +3894,31 @@ export function App() {
                   >
                     知道了
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {donateOpen && (
+            <div className="donate-modal-mask" onClick={() => setDonateOpen(false)}>
+              <div className="donate-modal" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="donate-modal-x"
+                  aria-label="关闭"
+                  onClick={() => setDonateOpen(false)}
+                >
+                  ×
+                </button>
+                <div className="donate-modal-text">
+                  本软件完全免费使用，微信搜索小程序《52中文编程》可以查看使用帮助。如果喜欢请扫码支持一下，扫码后可以屏蔽此窗口。
+                </div>
+                <img className="donate-modal-qr" src={donateQr} alt="微信赞赏码" />
+                <div className="donate-modal-actions">
                   <button
-                    className="rc-modal-stop"
-                    onClick={() =>
-                      void window.slidesApi.stopRemoteControl().then(() => {
-                        setRemoteControl(null)
-                        setRemoteControlModal(false)
-                      })
-                    }
+                    className="donate-modal-close"
+                    onClick={() => setDonateOpen(false)}
                   >
-                    停止远程控制
+                    关闭
                   </button>
                 </div>
               </div>

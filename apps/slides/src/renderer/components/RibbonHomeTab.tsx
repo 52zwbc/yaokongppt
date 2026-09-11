@@ -1266,7 +1266,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
           <span className="rb-big-icon">
             <IconPhone size={BIG} />
           </span>
-          <span>{remoteControlActive ? '停止远程控制' : '远程控制'}</span>
+          <span>远程控制</span>
         </button>
       </Group>
     </>

@@ -25,6 +25,8 @@ export const he = {
   ribbonLineDash: 'מקווקו',
   ribbonLineDot: 'מנוקד',
   ribbonLineDashDot: 'קו-נקודה',
+  ribbonFileNew: 'חדש',
+  ribbonFileClose: 'סגור',
   ribbonFileOpen: 'פתיחה…',
   ribbonFileSave: 'שמירה',
   ribbonFileSaveAs: 'שמירה בשם…',

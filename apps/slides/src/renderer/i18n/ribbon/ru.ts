@@ -27,6 +27,8 @@ export const ru = {
   ribbonLineDot: 'Пунктирная',
   ribbonLineDashDot: 'Штрихпунктирная',
   // file menu / quick access
+  ribbonFileNew: 'Создать',
+  ribbonFileClose: 'Закрыть',
   ribbonFileOpen: 'Открыть…',
   ribbonFileSave: 'Сохранить',
   ribbonFileSaveAs: 'Сохранить как…',

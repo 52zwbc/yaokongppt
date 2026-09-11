@@ -1141,6 +1141,8 @@ export type ShowInkEvent =
 export type AudienceNavAction = 'next' | 'prev' | 'exit'
 
 export type MenuCommand =
+  | 'new'
+  | 'close'
   | 'open'
   | 'save'
   | 'save-as'

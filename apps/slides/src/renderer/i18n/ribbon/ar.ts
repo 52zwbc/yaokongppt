@@ -27,6 +27,8 @@ export const ar = {
   ribbonLineDot: 'منقّط',
   ribbonLineDashDot: 'شرطة نقطة',
   // file menu / quick access
+  ribbonFileNew: 'جديد',
+  ribbonFileClose: 'إغلاق',
   ribbonFileOpen: 'فتح…',
   ribbonFileSave: 'حفظ',
   ribbonFileSaveAs: 'حفظ باسم…',

@@ -26,6 +26,8 @@ export const en = {
   ribbonLineDash: 'Dashed',
   ribbonLineDot: 'Dotted',
   ribbonLineDashDot: 'Dash-Dot',
+  ribbonFileNew: 'New',
+  ribbonFileClose: 'Close',
   ribbonFileOpen: 'Open…',
   ribbonFileSave: 'Save',
   ribbonFileSaveAs: 'Save As…',

@@ -26,6 +26,8 @@ export const zh = {
   ribbonLineDot: '点线',
   ribbonLineDashDot: '点划线',
   // file menu / quick access
+  ribbonFileNew: '新建',
+  ribbonFileClose: '关闭',
   ribbonFileOpen: '打开…',
   ribbonFileSave: '保存',
   ribbonFileSaveAs: '另存为…',

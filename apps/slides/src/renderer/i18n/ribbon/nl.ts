@@ -26,6 +26,8 @@ export const nl = {
   ribbonLineDash: 'Gestreept',
   ribbonLineDot: 'Gestippeld',
   ribbonLineDashDot: 'Streep-punt',
+  ribbonFileNew: 'Nieuw',
+  ribbonFileClose: 'Sluiten',
   ribbonFileOpen: 'Openen…',
   ribbonFileSave: 'Opslaan',
   ribbonFileSaveAs: 'Opslaan als…',

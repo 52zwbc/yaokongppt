@@ -28,6 +28,8 @@ export const de = {
   ribbonLineDot: 'Gepunktet',
   ribbonLineDashDot: 'Strichpunkt',
   // file menu / quick access
+  ribbonFileNew: 'Neu',
+  ribbonFileClose: 'Schließen',
   ribbonFileOpen: 'Öffnen…',
   ribbonFileSave: 'Speichern',
   ribbonFileSaveAs: 'Speichern unter…',

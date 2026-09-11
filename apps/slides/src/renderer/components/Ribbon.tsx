@@ -1079,6 +1079,8 @@ export function Ribbon({
   editing,
   autoSave,
   onAutoSaveChange,
+  onNew,
+  onCloseFile,
   onOpen,
   onSave,
   onUndo,
@@ -1705,6 +1707,14 @@ export function Ribbon({
                 <button
                   onClick={() => {
                     setFileOpen(false)
+                    onNew()
+                  }}
+                >
+                  {t('ribbonFileNew')} <span className="file-menu-key">Ctrl+N</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setFileOpen(false)
                     onOpen()
                   }}
                 >
@@ -1754,6 +1764,15 @@ export function Ribbon({
                   }}
                 >
                   {t('ribbonFileExportImages')}
+                </button>
+                <button
+                  disabled={!hasDoc}
+                  onClick={() => {
+                    setFileOpen(false)
+                    onCloseFile()
+                  }}
+                >
+                  {t('ribbonFileClose')}
                 </button>
               </div>
             )}

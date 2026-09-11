@@ -26,6 +26,8 @@ export const it = {
   ribbonLineDash: 'Tratteggiata',
   ribbonLineDot: 'Punteggiata',
   ribbonLineDashDot: 'Tratto-punto',
+  ribbonFileNew: 'Nuovo',
+  ribbonFileClose: 'Chiudi',
   ribbonFileOpen: 'Apri…',
   ribbonFileSave: 'Salva',
   ribbonFileSaveAs: 'Salva con nome…',

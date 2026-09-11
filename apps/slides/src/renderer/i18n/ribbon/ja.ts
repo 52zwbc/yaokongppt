@@ -27,6 +27,8 @@ export const ja = {
   ribbonLineDot: '点線',
   ribbonLineDashDot: '一点鎖線',
   // file menu / quick access
+  ribbonFileNew: '新規作成',
+  ribbonFileClose: '閉じる',
   ribbonFileOpen: '開く…',
   ribbonFileSave: '保存',
   ribbonFileSaveAs: '名前を付けて保存…',

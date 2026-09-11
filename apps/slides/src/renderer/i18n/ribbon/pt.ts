@@ -26,6 +26,8 @@ export const pt = {
   ribbonLineDash: 'Tracejada',
   ribbonLineDot: 'Pontilhada',
   ribbonLineDashDot: 'Traço-ponto',
+  ribbonFileNew: 'Novo',
+  ribbonFileClose: 'Fechar',
   ribbonFileOpen: 'Abrir…',
   ribbonFileSave: 'Salvar',
   ribbonFileSaveAs: 'Salvar como…',

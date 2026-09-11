@@ -25,6 +25,8 @@ export const hi = {
   ribbonLineDash: 'डैश',
   ribbonLineDot: 'बिंदीदार',
   ribbonLineDashDot: 'डैश-बिंदु',
+  ribbonFileNew: 'नया',
+  ribbonFileClose: 'बंद करें',
   ribbonFileOpen: 'खोलें…',
   ribbonFileSave: 'सहेजें',
   ribbonFileSaveAs: 'इस रूप में सहेजें…',

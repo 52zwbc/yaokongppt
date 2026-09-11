@@ -27,6 +27,8 @@ export const th = {
   ribbonLineDot: 'เส้นจุด',
   ribbonLineDashDot: 'เส้นประจุด',
   // file menu / quick access
+  ribbonFileNew: 'สร้างใหม่',
+  ribbonFileClose: 'ปิด',
   ribbonFileOpen: 'เปิด…',
   ribbonFileSave: 'บันทึก',
   ribbonFileSaveAs: 'บันทึกเป็น…',

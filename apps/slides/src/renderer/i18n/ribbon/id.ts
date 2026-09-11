@@ -28,6 +28,8 @@ export const id = {
   ribbonLineDot: 'Titik-titik',
   ribbonLineDashDot: 'Putus-titik',
   // file menu / quick access
+  ribbonFileNew: 'Baru',
+  ribbonFileClose: 'Tutup',
   ribbonFileOpen: 'Buka…',
   ribbonFileSave: 'Simpan',
   ribbonFileSaveAs: 'Simpan Sebagai…',

@@ -26,6 +26,8 @@ export const pl = {
   ribbonLineDash: 'Kreskowana',
   ribbonLineDot: 'Kropkowana',
   ribbonLineDashDot: 'Kreska-kropka',
+  ribbonFileNew: 'Nowy',
+  ribbonFileClose: 'Zamknij',
   ribbonFileOpen: 'Otwórz…',
   ribbonFileSave: 'Zapisz',
   ribbonFileSaveAs: 'Zapisz jako…',
