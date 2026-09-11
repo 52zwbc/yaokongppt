@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="rBtfIrjChx3w3DtxIit1Dn">
+<head data-page-node-id="oWN1yf32v8hjvU2R0FbDeE">
+<meta charset="utf-8" data-page-node-id="cWNhW7ZILFP0MXJVQXoZtR" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" data-page-node-id="1Ueo1L6yI29VTHSCUo2nqX" />
+<title>放映遥控</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0f172a; color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 14px 12px 28px;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 2px 0 8px; }
+  .status {
+    font-size: 13px; padding: 5px 12px; border-radius: 999px; margin-bottom: 12px;
+    background: #334155; transition: background .2s;
+  }
+  .status.on { background: #166534; }
+  .status.off { background: #7f1d1d; }
+  .wrap { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 14px; }
+  .panel { background: #111c33; border: 1px solid #1e293b; border-radius: 14px; padding: 12px; }
+  .panel-title { font-size: 13px; color: #93c5fd; margin: 0 0 10px; font-weight: 600; letter-spacing: .5px; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  button {
+    appearance: none; border: none; border-radius: 14px; padding: 18px 10px;
+    font-size: 16px; font-weight: 600; color: #fff; cursor: pointer; user-select: none;
+    transition: transform .05s, filter .15s; background: #334155; min-height: 52px;
+  }
+  button:active { transform: scale(0.96); filter: brightness(1.15); }
+  .b-start { background: #2563eb; }
+  .b-exit  { background: #dc2626; }
+  .b-nav   { background: #0891b2; }
+  .b-dir   { background: #475569; }
+  .b-enter { background: #16a34a; }
+  .b-win   { background: #7c3aed; }
+  .b-vol   { background: #0d9488; }
+  .b-med   { background: #9333ea; }
+  .b-mouse { background: #2563eb; }
+  .b-click { background: #1d4ed8; }
+  .b-wheel { background: #0ea5e9; }
+  .b-plan  { background: #334155; font-size: 14px; padding: 14px 8px; }
+  .b-plan.on { outline: 3px solid #f59e0b; }
+  /* 方向键十字 */
+  .dpad { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; justify-items: center; }
+  .dpad .up    { grid-column: 2; }
+  .dpad .mid   { grid-column: 2; color: #64748b; font-size: 12px; display: flex; align-items: center; justify-content: center; min-height: 52px; }
+  .dpad .left  { grid-column: 1; grid-row: 2; }
+  .dpad .right { grid-column: 3; grid-row: 2; }
+  .dpad .down  { grid-column: 2; grid-row: 3; }
+  /* 触控板 */
+  .pad {
+    width: 100%; height: 170px; background: #0b1426; border: 1px solid #243049;
+    border-radius: 14px; touch-action: none; position: relative; overflow: hidden;
+  }
+  .pad::after {
+    content: "触控板：手指拖动移动鼠标"; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center; color: #475569;
+    font-size: 13px; pointer-events: none;
+  }
+  .text-row { display: flex; gap: 8px; }
+  .text-row input {
+    flex: 1; border: 1px solid #334155; background: #0b1426; color: #e2e8f0;
+    border-radius: 12px; padding: 0 12px; font-size: 15px; min-height: 44px; outline: none;
+  }
+  .text-row button { flex: 0 0 84px; background: #16a34a; }
+  .info-select {
+    width: 100%; border: 1px solid #334155; background: #0b1426; color: #e2e8f0;
+    border-radius: 12px; padding: 0 12px; font-size: 15px; min-height: 44px; outline: none;
+  }
+  .hint { font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.6; margin-top: 4px; }
+  .back-link { font-size: 13px; color: #60a5fa; text-decoration: none; margin: -4px 0 8px; display: block; }
+  .diag {
+    margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: #0b1426;
+    border: 1px solid #243049; font-size: 12px; color: #fbbf24; word-break: break-all;
+  }
+  .b-hold { background: #334155; font-size: 14px; padding: 12px 8px; }
+  .b-hold.on { outline: 3px solid #f59e0b; }
+  /* 随机点名按钮 */
+  .b-rollcall { background: #2563eb; font-size: 16px; }
+  .b-rollcall:active { transform: scale(0.96); filter: brightness(1.15); }
+  /* 学生名单按钮（点击直接点名）：一行约 5 个，字号偏小 */
+  .names-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 4px; }
+  .names-grid button {
+    appearance: none; border: none; border-radius: 10px; padding: 8px 2px;
+    font-size: 12px; font-weight: 600; color: #e2e8f0; cursor: pointer; user-select: none;
+    background: #334155; min-height: 34px; line-height: 1.1; transition: transform .05s, filter .15s;
+  }
+  .names-grid button:active { transform: scale(0.95); filter: brightness(1.2); }
+  .b-refresh { background: #475569; font-size: 13px; padding: 10px 8px; margin-top: 10px; }
+  /* 信息呼叫常用语按钮（固定写死，点击直接发送） */
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .preset-btn {
+    appearance: none; border: none; border-radius: 10px; padding: 12px 6px;
+    font-size: 13px; font-weight: 600; color: #e2e8f0; cursor: pointer; user-select: none;
+    background: #334155; min-height: 40px; line-height: 1.2; transition: transform .05s, filter .15s;
+  }
+  .preset-btn:active { transform: scale(0.96); filter: brightness(1.15); }
+  /* 暂时搁置的鼠标方案调试区（保留逻辑，仅隐藏 UI） */
+  .rc-debug { display: none !important; }
+</style>
+</head>
+<body data-page-node-id="xcWE4BWtGQVe7wkTwQz1NY">
+  <h1 data-page-node-id="DckkTyWNL519grpjRS6hOP">放映遥控</h1>
+  <a class="back-link" href="/" data-page-node-id="nyx1YJoghkYkmue3ypHADt">← 远程文件</a>
+  <div id="status" class="status off" data-page-node-id="9PO4Jq3rAecdFcbJoUvnpD">未连接</div>
+
+  <div class="wrap" data-page-node-id="FxxB1DqfkaZpNJEaZQI9vB">
+    <!-- 放映控制 -->
+    <div class="panel" data-page-node-id="fHAbdIyVxgy97c76UdC5kW">
+      <div class="panel-title" data-page-node-id="dHbdcZMuGXoCGyCigVP2Vh">放映控制</div>
+      <div class="row" data-page-node-id="18rZfEPHe6FdUcLFiSlZzT">
+        <button class="b-start" data-action="start" data-page-node-id="ceSdB4iaaEjGCzHU5xFso8">▶ 放映</button>
+        <button class="b-exit"  data-action="exit" data-page-node-id="l7kHArqyq54lacLchwHVZL">■ 退出</button>
+      </div>
+      <div class="grid2" style="margin-top:10px;" data-page-node-id="BdFjZQsMOC7JLFiJnLE0iG">
+        <button class="b-nav" data-action="prev" data-page-node-id="LZxdQXaBxaxctIPTlFXxyk">‹ 前页</button>
+        <button class="b-nav" data-action="next" data-page-node-id="8GBHrEKx4UQCTiTMAqVTGH">后页 ›</button>
+      </div>
+      <div class="row" style="margin-top:10px;" data-page-node-id="Qe0JXcaF6cfIHuitEpnrEd">
+        <button class="b-rollcall" id="rollcall" data-page-node-id="If9ZFjM06dW93r637qUJAN">🎲 随机点名</button>
+      </div>
+      <!-- 学生名单：点击直接点名（名单取自 names.dll，可改后刷新） -->
+      <div id="namesPanel" style="margin-top:12px;" data-page-node-id="ym107nvotAfc17UThpDGLC">
+        <div class="panel-title" style="margin-bottom:6px;" data-page-node-id="473MArhwdGF99fvuN5Hq2x">学生名单（点击直接点名）</div>
+        <div id="namesGrid" class="names-grid" data-page-node-id="pXqXK7MDk7dKFJTCVMsVGP"></div>
+        <button class="b-refresh" id="refreshNames" data-page-node-id="xAS12bsadjugeP8NHJgfbK">↻ 刷新名单</button>
+      </div>
+    </div>
+
+    <!-- 常用键盘 -->
+    <div class="panel" data-page-node-id="NL6PTd7afIwUEuSAER0ZRA">
+      <div class="panel-title" data-page-node-id="ZOxeZpCdhSdZOSJ6vkImZS">常用键盘</div>
+      <div class="dpad" data-page-node-id="iBKp11TVrg4GCWJi7cQ9Bw">
+        <button class="b-dir up"    data-action="up" data-page-node-id="wT6aSGtffnEt8fGhaXi241">↑</button>
+        <div class="mid" data-page-node-id="3TQP5qzxzfgfdpHTQCqz6W">方向键</div>
+        <button class="b-dir left"  data-action="left" data-page-node-id="alk8srTJ6UDEG7cEN2l19S">←</button>
+        <button class="b-dir right" data-action="right" data-page-node-id="GN1SPkJblRV2qL7Odx18cO">→</button>
+        <button class="b-dir down"  data-action="down" data-page-node-id="xL7GCJkb0r2ObH1FH66WHA">↓</button>
+      </div>
+      <div class="grid3" style="margin-top:10px;" data-page-node-id="cCWDJG8366Wz5fOwSirYBo">
+        <button class="b-dir"   data-action="backspace" data-page-node-id="HKAURAXKSdhfMy5cY1H0rj">⌫ 删除</button>
+        <button class="b-enter" data-action="enter" data-page-node-id="NFdsRjX9CjBOXwVUd3AUiy">Enter</button>
+        <button class="b-win"   data-action="win" data-page-node-id="sU1KOBTpduE3p0KTOyFid9">⊞ Win</button>
+      </div>
+      <div class="grid3" style="margin-top:10px;" data-page-node-id="q0uusbrilOtEPmtefCbMbO">
+        <button class="b-vol" data-action="volup" data-page-node-id="pwUvpQEChC00e7bU3jC8Aw">音量 +</button>
+        <button class="b-vol" data-action="voldown" data-page-node-id="AZhrjrHl1fI8qEDATPfZrs">音量 -</button>
+        <button class="b-vol" data-action="mute" data-page-node-id="qowthWThAxHl567j7VdVZg">🔇 静音</button>
+      </div>
+      <div class="grid3" style="margin-top:10px;" data-page-node-id="mMpxqEywdUQDeGJbQiguWO">
+        <button class="b-med" data-action="mediaprev" data-page-node-id="qaWEFJu4mD4J7wbVanz23E">⏮ 上一曲</button>
+        <button class="b-med" data-action="playpause" data-page-node-id="oEdYbTHFvcRJSM8XDFW0YX">⏯ 播放/暂停</button>
+        <button class="b-med" data-action="medianext" data-page-node-id="TXkvXbGciMDzTBkxV5u1fD">⏭ 下一曲</button>
+      </div>
+    </div>
+
+    <!-- 文本输入 -->
+    <div class="panel" data-page-node-id="2OSKkCE2EbrAkeEoGVU5Za">
+      <div class="panel-title" data-page-node-id="FC2kqD2twCsMHfIdN0F7PA">文本输入（插入到电脑光标处）</div>
+      <div class="text-row" data-page-node-id="dLRnkh8sn1kL7miPpBXTAv">
+        <input id="txt" type="text" placeholder="输入文字后点确定…" data-page-node-id="HuBHxmrKWCyltXXLd81Sj4" />
+        <button id="sendTxt" data-page-node-id="0swCIJqyzgztShdr2oPrjk">确定</button>
+      </div>
+      <div class="hint" data-page-node-id="lrYE9GBuAqPFoJQ9gzBY1Q">需先在电脑上把光标放到文本编辑区域；确定后内容以粘贴方式插入到插入点。</div>
+    </div>
+
+    <!-- 信息呼叫 -->
+    <div class="panel" data-page-node-id="LmncPBgsfg2DJqdhZqCDmD">
+      <div class="panel-title" data-page-node-id="Kawb7OWBbueG76Vi0ZpQ00">信息呼叫（电脑置顶显示）</div>
+      <div class="text-row" data-page-node-id="TBMg1vEDsOsK47HeVZ5Brs">
+        <input id="infoTxt" type="text" placeholder="输入要呼叫的信息…" data-page-node-id="RZt21hjWwntsDHG7OrXGO1" />
+        <button id="sendInfo" data-page-node-id="7fpgys8Pnb0w1D0l6Em8EN">发送</button>
+      </div>
+      <div class="preset-grid" id="presetGrid" style="margin-top:10px;" data-page-node-id="9JUO7ZteLm1NR8DcGSbzYp"></div>
+      <div class="hint" data-page-node-id="EWUxU80HxGpXOn130RWfNa">点击上方常用语按钮直接发送到电脑置顶显示（可点 × 关闭）；若「常用语声音」文件夹里有同名 mp3 则播放一次（录音长度由你决定），没有则只显示文字。也可在输入框自填后点“发送”。</div>
+    </div>
+
+    <!-- 鼠标模拟 -->
+    <div class="panel" data-page-node-id="DNdDTpXVcFCoEckC0gmXwS">
+      <div class="panel-title" data-page-node-id="rESSGC2KXNXHs79yriuUsJ">鼠标模拟</div>
+      <div id="pad" class="pad" data-page-node-id="EYqKLYESWEa1G9msSKPuS9"></div>
+      <div class="row" style="margin-top:10px;" data-page-node-id="TBhrWu3bGhKwsRPN4Zj5gs">
+        <button class="b-click" id="leftClick" data-page-node-id="tAePl8Fs9q4jKLWpyYSiSY">左键</button>
+        <button class="b-click" id="rightClick" data-page-node-id="TP5VF8ULoT28b5hAyB3DRf">右键</button>
+      </div>
+      <button class="b-hold rc-debug" id="holdToggle" style="margin-top:8px;" data-page-node-id="ncPH8NUm7sLP8VRNUeKBH1">长按模式：关（当前=点击一次）</button>
+      <div class="row" style="margin-top:10px;" data-page-node-id="iLEtgwgZXQGnqN3crNO6of">
+        <button class="b-wheel" id="wheelUp" data-page-node-id="pmlyoRYvfmv9VaBGGyvn3D">滚轮 ↑</button>
+        <button class="b-wheel" id="wheelDown" data-page-node-id="zhugfIXGMcwdweGgfnBixG">滚轮 ↓</button>
+      </div>
+      <div class="grid3 rc-debug" style="gap:8px;" data-page-node-id="kFuaIKPEfTkeEKSabNRvyj">
+        <button class="b-plan" data-way="1" id="way1" data-page-node-id="Phsw7xrKmIvzZARohxm8Ge">方式1 SendInput</button>
+        <button class="b-plan" data-way="2" data-page-node-id="gFGLk038b3GQ0UQHhjoKDn">方式2 定位</button>
+        <button class="b-plan" data-way="3" data-page-node-id="J58Hs54T6BPoH0WuLu2XMb">方式3 旧API</button>
+        <button class="b-plan" data-way="4" data-page-node-id="rjBsQIKj3drCW5XMcAbSyG">方式4 直投</button>
+      </div>
+      <div class="hint rc-debug" style="margin-top:8px;" data-page-node-id="ZyvCLoJBgOXacEFA7iIVbf">若点击无效，再换<strong data-page-node-id="P3hMIBOTv8gZAoiAC3Lri2">注入引擎</strong>（决定由什么进程来注入）：</div>
+      <div class="grid3 rc-debug" style="gap:8px;" data-page-node-id="0HL71SNEUksXpRAW6Hzrr0">
+        <button class="b-plan" data-engine="1" id="engine1" data-page-node-id="QhxTRkCrRRQnA1yzXbA4o2">引擎1 隐藏进程</button>
+        <button class="b-plan" data-engine="2" data-page-node-id="yvd8dxZL1vBCFiBX90THWF">引擎2 可见窗口</button>
+        <button class="b-plan" data-engine="3" data-page-node-id="FSD6XIVEKijN2IdeuD7Anc">引擎3 单次进程</button>
+      </div>
+      <div class="diag rc-debug" id="diag" data-page-node-id="A20Z30Zh0dGDlIFLdvQuGM">注入诊断：等待一次点击…</div>
+      <div class="hint rc-debug" data-page-node-id="mvuDJE4ksMhn4xyItiZ9Ic">方式1＝SendInput 独立按下/抬起（与 Python pynput 完全同款）；方式2＝先用 SetCursorPos 钉住光标再 SendInput；方式3＝老 mouse_event；方式4＝PostMessage 直投窗口。<br data-page-node-id="cyE7xTaPK75xAtwB1iKI8F"/>
+        引擎1＝常驻隐藏进程（默认）；引擎2＝常驻但<strong data-page-node-id="X1sUyJpJHf5HFJOrf3ZHC2">显示 PowerShell 窗口</strong>（用于验证“无窗口进程被区别对待”，弹窗请勿关闭）；引擎3＝每次点击新起一个进程（最慢，约1-2秒，但进程形态与手动运行 Python 服务一致）。<br data-page-node-id="ahyvNfKYjowDl1mby7l6ZV"/>
+        点一次左/右键后看上方诊断：返回 1~2 说明系统已接受注入（问题在目标程序）；返回 0 说明被系统拒绝。</div>
+    </div>
+  </div>
+
+<script>
+  var statusEl = document.getElementById('status');
+  var ws = null;
+  var SENS = 1.4; // 触控板灵敏度
+  var clickWay = 1; // 点击方式：1 SendInput（pynput 同款）
+  var holdMode = false; // 是否为“按住/松开”模式（旧方案2 行为）
+
+  function setStatus(on, text) {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + (on ? 'on' : 'off');
+  }
+  function connect() {
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host);
+    ws.onopen = function () { setStatus(true, '已连接'); send({ action: 'names' }); };
+    ws.onclose = function () { setStatus(false, '已断开 · 重连中…'); setTimeout(connect, 1500); };
+    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+    ws.onmessage = function (ev) {
+      try {
+        var m = JSON.parse(ev.data);
+        if (m && m.type === 'diag') setDiag(m.text);
+        else if (m && m.type === 'rollcall') setStatus(true, '已点名：' + m.name);
+        else if (m && m.type === 'names') renderNames(m.names || []);
+      } catch (e) {}
+    };
+  }
+  function send(obj) {
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+  }
+
+  // 注入诊断显示
+  var diagEl = document.getElementById('diag');
+  function setDiag(text) {
+    diagEl.textContent = '注入诊断：' + text;
+  }
+
+  // 键盘快捷键按钮
+  document.querySelectorAll('button[data-action]').forEach(function (btn) {
+    btn.addEventListener('click', function () { send({ action: btn.getAttribute('data-action') }); });
+  });
+
+  // 随机点名（前页/后页下方）
+  var rcBtn = document.getElementById('rollcall');
+  if (rcBtn) rcBtn.addEventListener('click', function () { send({ action: 'rollcall' }); });
+
+  // 学生名单：从服务端临时读取 names.dll，点击直接点名
+  var namesGrid = document.getElementById('namesGrid');
+  function renderNames(names) {
+    namesGrid.innerHTML = '';
+    if (!names.length) {
+      var tip = document.createElement('div');
+      tip.style.cssText = 'grid-column:1/-1;color:#94a3b8;font-size:12px;text-align:center;padding:6px 0;';
+      tip.textContent = '名单为空（请在电脑端编辑 names.dll 后点刷新）';
+      namesGrid.appendChild(tip);
+      return;
+    }
+    names.forEach(function (n) {
+      var b = document.createElement('button');
+      b.textContent = n;
+      b.title = '点名：' + n;
+      b.addEventListener('click', function () { send({ action: 'callname', name: n }); });
+      namesGrid.appendChild(b);
+    });
+  }
+  var refreshBtn = document.getElementById('refreshNames');
+  if (refreshBtn) refreshBtn.addEventListener('click', function () { send({ action: 'names' }); });
+
+  // 文本输入
+  var txt = document.getElementById('txt');
+  function sendText() {
+    var t = txt.value;
+    if (t) { send({ action: 'type', text: t }); txt.value = ''; }
+  }
+  document.getElementById('sendTxt').addEventListener('click', sendText);
+  txt.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendText(); } });
+
+  // 触控板移动
+  var pad = document.getElementById('pad');
+  var lastX = null, lastY = null;
+  pad.addEventListener('pointerdown', function (e) {
+    lastX = e.clientX; lastY = e.clientY;
+    try { pad.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  pad.addEventListener('pointermove', function (e) {
+    if (lastX === null) return;
+    var dx = Math.round((e.clientX - lastX) * SENS);
+    var dy = Math.round((e.clientY - lastY) * SENS);
+    lastX = e.clientX; lastY = e.clientY;
+    if (dx !== 0 || dy !== 0) send({ action: 'mousemove', dx: dx, dy: dy });
+  });
+  function endPad() { lastX = null; lastY = null; }
+  pad.addEventListener('pointerup', endPad);
+  pad.addEventListener('pointercancel', endPad);
+  pad.addEventListener('pointerleave', endPad);
+
+  // 左/右键点击（按当前方式，由服务端分派）
+  function clickMouse(button) {
+    send({ action: 'click', button: button });
+  }
+
+  // 点击方式
+  document.querySelectorAll('button[data-way]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      clickWay = parseInt(b.getAttribute('data-way'), 10);
+      send({ action: 'way', way: clickWay });
+      document.querySelectorAll('button[data-way]').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+    });
+  });
+  document.getElementById('way1').classList.add('on');
+
+  // 注入引擎
+  document.querySelectorAll('button[data-engine]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var e = parseInt(b.getAttribute('data-engine'), 10);
+      send({ action: 'engine', engine: e });
+      document.querySelectorAll('button[data-engine]').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      if (e === 2) setDiag('已切到引擎2：电脑上会弹出一个 PowerShell 窗口，请勿关闭它，然后再试点击。');
+      else if (e === 3) setDiag('已切到引擎3：每次点击会新起进程，约 1~2 秒才有反应，请耐心等待。');
+      else setDiag('已切到引擎1（常驻隐藏进程），试试点击。');
+    });
+  });
+  document.getElementById('engine1').classList.add('on');
+
+  // 左/右键：click 触发点击；长按模式（旧方案2 行为）用按住/松开
+  function bindHold(id, button) {
+    var el = document.getElementById(id);
+    el.addEventListener('pointerdown', function (e) { e.preventDefault(); if (holdMode) send({ action: 'down', button: button }); });
+    el.addEventListener('pointerup', function (e) { e.preventDefault(); if (holdMode) send({ action: 'up', button: button }); });
+    el.addEventListener('pointercancel', function () { if (holdMode) send({ action: 'up', button: button }); });
+    el.addEventListener('pointerleave', function () { if (holdMode) send({ action: 'up', button: button }); });
+    el.addEventListener('click', function () { if (!holdMode) clickMouse(button); });
+  }
+  bindHold('leftClick', 'left');
+  bindHold('rightClick', 'right');
+
+  // 长按模式：开启后按住左/右键即“按下”，松手才“抬起”（适合拖动）
+  var holdBtn = document.getElementById('holdToggle');
+  holdBtn.addEventListener('click', function () {
+    holdMode = !holdMode;
+    holdBtn.textContent = holdMode ? '长按模式：开（按住=按下，松手=抬起）' : '长按模式：关（当前=点击一次）';
+    holdBtn.classList.toggle('on', holdMode);
+  });
+
+  // 滚轮
+  document.getElementById('wheelUp').addEventListener('click', function () { send({ action: 'wheel', delta: 120 }); });
+  document.getElementById('wheelDown').addEventListener('click', function () { send({ action: 'wheel', delta: -120 }); });
+
+  // 信息呼叫：常用语固定写死（文本基本不变），点击按钮直接发送
+  var infoTxt = document.getElementById('infoTxt');
+  var presetGrid = document.getElementById('presetGrid');
+  var INFO_PHRASES = [
+    '请物理课代表到办公室来。',
+    '请语文课代表到办公室来。',
+    '请数学课代表到办公室来。',
+    '请英语课代表到办公室来。',
+    '请化学课代表到办公室来。',
+    '请政治课代表到办公室来。',
+    '请历史课代表到办公室来。',
+    '请地理课代表到办公室来。',
+    '请生物课代表到办公室来。',
+    '请班长到办公室来。'
+  ];
+  if (presetGrid) {
+    INFO_PHRASES.forEach(function (s) {
+      var b = document.createElement('button');
+      b.className = 'preset-btn';
+      b.textContent = s;
+      b.addEventListener('click', function () {
+        if (!ws || ws.readyState !== 1) { setStatus(false, '未连接，无法发送'); return; }
+        send({ action: 'infocall', text: s });
+        setStatus(true, '已发送信息呼叫：' + s);
+      });
+      presetGrid.appendChild(b);
+    });
+  }
+  var sendInfoBtn = document.getElementById('sendInfo');
+  function sendInfo() {
+    var t = infoTxt.value.trim();
+    if (!t) return;
+    send({ action: 'infocall', text: t });
+    setStatus(true, '已发送信息呼叫：' + t);
+    infoTxt.value = '';
+  }
+  if (sendInfoBtn) sendInfoBtn.addEventListener('click', sendInfo);
+  infoTxt.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendInfo(); } });
+
+  connect();
+</script>
+</body>
+</html>

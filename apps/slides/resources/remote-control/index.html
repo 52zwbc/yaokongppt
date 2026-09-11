@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>远程文件</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #0f172a; color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 10px 4px 20px;
+  }
+  h1 { font-size: 18px; font-weight: 600; margin: 2px 0 4px; }
+  .dir { font-size: 12px; color: #64748b; margin-bottom: 10px; word-break: break-all; text-align: center; }
+  .wrap { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: #111c33; border: 1px solid #1e293b; border-radius: 14px; padding: 10px 8px; }
+  .panel-title { font-size: 13px; color: #93c5fd; margin: 0 0 10px; font-weight: 600; letter-spacing: .5px; }
+  button {
+    appearance: none; border: none; border-radius: 14px; padding: 16px 10px;
+    font-size: 16px; font-weight: 600; color: #fff; cursor: pointer; user-select: none;
+    transition: transform .05s, filter .15s; background: #2563eb; min-height: 52px; width: 100%;
+  }
+  button:active { transform: scale(0.96); filter: brightness(1.15); }
+  button:disabled { opacity: .5; }
+  #pick { background: #16a34a; display: block; text-align: center; }
+  /* 文件列表 = 拖拽上传区 */
+  #drop {
+    border: 2px dashed #243049; border-radius: 14px; padding: 8px; min-height: 120px;
+    transition: border-color .15s, background .15s; margin-top: 10px;
+  }
+  #drop.over { border-color: #2563eb; background: rgba(37,99,235,.08); }
+  .file {
+    display: flex; align-items: center; gap: 8px; padding: 10px 6px; border-radius: 12px;
+    background: #0b1426; border: 1px solid #1e293b; margin-bottom: 8px; min-height: 56px;
+  }
+  .file.openable { border-color: #14532d; }
+  .file .ico { font-size: 20px; flex: 0 0 26px; text-align: center; }
+  .file .meta { flex: 1; min-width: 0; }
+  .file .name {
+    font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file .sub {
+    font-size: 11px; color: #64748b; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .file .btns { display: flex; gap: 6px; flex: 0 0 auto; align-items: center; }
+  .file .btns button {
+    appearance: none; border: none; border-radius: 10px; padding: 9px 11px;
+    font-size: 13px; font-weight: 600; color: #fff; min-height: 38px; min-width: 52px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .file .btns button:active { transform: scale(.94); filter: brightness(1.15); }
+  .file .btns .del { background: #dc2626; }
+  .file .btns .open-in { background: #16a34a; }
+  .file .btns .open-ext { background: #2563eb; }
+  .file:not(.openable) { opacity: 1; }
+  .empty { color: #475569; text-align: center; padding: 30px 10px; font-size: 14px; }
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px; z-index: 9;
+    background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+    padding: 12px 18px; border-radius: 12px; font-size: 14px; max-width: 86vw;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none;
+  }
+  .toast a { color: #60a5fa; margin-left: 6px; }
+  .to-remote {
+    display: block; text-align: center; padding: 16px; border-radius: 14px;
+    background: #7c3aed; color: #fff; text-decoration: none; font-size: 16px; font-weight: 600;
+  }
+  .hint { font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.6; margin-top: 8px; }
+  .prog { font-size: 13px; color: #93c5fd; text-align: center; padding: 8px 0; display: none; }
+</style>
+</head>
+<body>
+  <h1>远程文件</h1>
+  <div class="dir" id="dir">读取中…</div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="panel-title">上传（电脑/手机选择文件，或把文件拖到下方列表区）</div>
+      <label id="pick" for="fileInput">＋ 选择文件上传</label>
+      <input id="fileInput" type="file" multiple style="display:none" />
+      <div class="prog" id="prog">上传中…</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">文件列表（新文件在上 · .pptx 在软件内打开、其他用系统默认程序打开）</div>
+      <div id="drop">
+        <div class="empty">（空）</div>
+      </div>
+      <div class="hint">电脑浏览器：把文件直接拖进上面的列表区即可上传。<br/>
+      手机：点“选择文件上传”后从相册/文件管理器里挑。</div>
+    </div>
+
+    <a class="to-remote" href="/control">→ 前往远程遥控页（放映/键鼠控制）</a>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  var dirEl = document.getElementById('dir');
+  var dropEl = document.getElementById('drop');
+  var fileInput = document.getElementById('fileInput');
+  var progEl = document.getElementById('prog');
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+
+  function toast(html, ms) {
+    toastEl.innerHTML = html;
+    toastEl.style.display = 'block';
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.style.display = 'none'; }, ms || 2600);
+  }
+
+  function fmtSize(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+    return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+  }
+  function fmtTime(t) {
+    var d = new Date(t);
+    function p(x) { return (x < 10 ? '0' : '') + x; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function post(url) {
+    return fetch(url, { method: 'POST' }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+  }
+
+  function openFile(name, openable) {
+    post((openable ? '/api/open?name=' : '/api/open-external?name=') + encodeURIComponent(name))
+      .then(function (r) {
+        if (r.ok) toast('已在电脑上打开' + (openable ? '<a href="/control">→ 去遥控</a>' : ''), 5000);
+        else toast(r.j && r.j.error ? r.j.error : '打开失败');
+      })
+      .catch(function () { toast('打开失败（网络错误）'); });
+  }
+
+  function delFile(el, name) {
+    post('/api/delete?name=' + encodeURIComponent(name))
+      .then(function (r) {
+        if (r.ok) {
+          if (el && el.parentNode) el.remove();
+        } else {
+          toast(r.j && r.j.error ? r.j.error : '删除失败');
+        }
+      })
+      .catch(function () { toast('删除失败（网络错误）'); });
+  }
+
+  function loadFiles() {
+    fetch('/api/files', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) {
+      dirEl.textContent = '电脑文件夹：' + (j.dir || '');
+      if (!j.files || !j.files.length) {
+        dropEl.innerHTML = '<div class="empty">（空）</div>';
+        return;
+      }
+      var html = '';
+      j.files.forEach(function (f) {
+        var openable = /\.pptx$/i.test(f.name);
+        html += '<div class="file' + (openable ? ' openable' : '') + '" data-name="' + encodeURIComponent(f.name) + '">'
+          + '<div class="ico">' + (openable ? '📊' : '📄') + '</div>'
+          + '<div class="meta"><div class="name">' + f.name.replace(/</g, '&lt;') + '</div>'
+          + '<div class="sub">' + fmtSize(f.size) + ' · ' + fmtTime(f.mtime) + '</div></div>'
+          + '<div class="btns">'
+          + '<button class="del">删除</button>'
+          + '<button class="open ' + (openable ? 'open-in' : 'open-ext') + '">打开</button>'
+          + '</div>'
+          + '</div>';
+      });
+      dropEl.innerHTML = html;
+      dropEl.querySelectorAll('.file').forEach(function (el) {
+        var name = decodeURIComponent(el.getAttribute('data-name'));
+        var openable = /\.pptx$/i.test(name);
+        el.querySelector('.btns .open').addEventListener('click', function (e) {
+          e.stopPropagation();
+          openFile(name, openable);
+        });
+        el.querySelector('.btns .del').addEventListener('click', function (e) {
+          e.stopPropagation();
+          delFile(el, name);
+        });
+        if (openable) {
+          el.addEventListener('click', function () { openFile(name, true); });
+        }
+      });
+    }).catch(function () { dirEl.textContent = '连接失败，请刷新重试'; });
+  }
+
+  function uploadOne(file, done) {
+    var name = file.name || ('upload-' + Date.now());
+    fetch('/api/upload?name=' + encodeURIComponent(name), { method: 'POST', body: file })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.ok) toast('已上传：' + name); else toast((j && j.error) || '上传失败'); done(); })
+      .catch(function () { toast('上传失败（网络错误）'); done(); });
+  }
+  function uploadFiles(files) {
+    var list = Array.prototype.slice.call(files || []);
+    if (!list.length) return;
+    progEl.style.display = 'block';
+    var i = 0;
+    function next() {
+      if (i >= list.length) { progEl.style.display = 'none'; loadFiles(); return; }
+      uploadOne(list[i++], next);
+    }
+    next();
+  }
+
+  fileInput.addEventListener('change', function () {
+    uploadFiles(fileInput.files);
+    fileInput.value = '';
+  });
+
+  // 拖拽上传（电脑浏览器）
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.add('over'); });
+  });
+  ['dragleave', 'dragend'].forEach(function (ev) {
+    dropEl.addEventListener(ev, function (e) { e.preventDefault(); dropEl.classList.remove('over'); });
+  });
+  dropEl.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropEl.classList.remove('over');
+    uploadFiles(e.dataTransfer && e.dataTransfer.files);
+  });
+
+  loadFiles();
+</script>
+</body>
+</html>

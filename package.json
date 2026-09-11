@@ -1,0 +1,31 @@
+{
+  "name": "pptx-presenter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "轻量 pptx 编辑与播放器",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck -w @genoffice/pptx-engine && npm run typecheck -w @genoffice/pptx-render && npm run typecheck -w @genoffice/metafile && npm run typecheck -w @genoffice/ui && npm run typecheck -w @genoffice/i18n && npm run typecheck -w @genoffice/project-store && npm run typecheck -w @genoffice/electron-utils && npm run typecheck -w yaokongppt",
+    "test": "npm run test -w @genoffice/pptx-engine && npm run test -w @genoffice/pptx-render && npm run test -w @genoffice/i18n && npm run test -w @genoffice/project-store && npm run test -w @genoffice/electron-utils && npm run test -w yaokongppt",
+    "dev": "npm run dev -w yaokongppt",
+    "build": "npm run build -w yaokongppt",
+    "dist:win": "npm run build -w yaokongppt && npm run dist:win -w yaokongppt",
+    "dist:mac": "npm run build -w yaokongppt && npm run dist:mac -w yaokongppt",
+    "dist:linux": "npm run build -w yaokongppt && npm run dist:linux -w yaokongppt"
+  },
+  "overrides": {
+    "nanoid@3": "^3.3.17",
+    "nanoid@5": "^5.1.16"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
