@@ -91,12 +91,30 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-win-${arch}-green-portable.${ext}"
+    },
+    "zip": {
+      "artifactName": "${productName}-${version}-win-${arch}-green-win-unpacked.${ext}"
     },
     "linux": {
       "target": ["deb", "AppImage"],
