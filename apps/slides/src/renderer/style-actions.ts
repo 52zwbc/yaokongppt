@@ -11,7 +11,7 @@ import type {
   EditTableStyleOp,
   GradientFillSpec,
 } from '../shared/ipc'
-import type { FontSizeStep } from '../shared/font-size'
+import type { FontSizeStep } from '@genoffice/pptx-ops/font-size'
 import type { ActionCtx } from './action-context'
 import { FIT_WIDTH } from './app-constants'
 import {

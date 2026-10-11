@@ -185,7 +185,7 @@ export const ja = {
   ribbonFlipH: '左右反転',
   ribbonFlipV: '上下反転',
   ribbonDistributeHint: '{title}（3 つ以上の要素を選択）',
-  ribbonAiAssistant: 'Genspark',
+  ribbonAiAssistant: '源项目',
   ribbonAiAssistantTip: 'AI アシスタントパネルの表示/非表示',
   // Insert
   ribbonGroupTable: '表',

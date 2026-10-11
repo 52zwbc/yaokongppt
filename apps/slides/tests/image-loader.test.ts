@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createImageLoader } from '../src/renderer/image-loader'
+import { metafileToDataUrl } from '@genoffice/docx-engine/metafile'
+import { createImageLoader, MAX_METAFILE_BASE64_CHARS } from '../src/renderer/image-loader'
+
+vi.mock('@genoffice/docx-engine/metafile', () => ({
+  metafileToDataUrl: vi.fn(async () => 'data:image/png;base64,AA=='),
+}))
 
 class FakeImage {
   static instances: FakeImage[] = []
@@ -74,6 +79,64 @@ describe('createImageLoader', () => {
     loader.dispose()
     img('a').onload!()
     vi.runAllTimers()
+    expect(apply).not.toHaveBeenCalled()
+  })
+
+  it('never re-decodes a url whose decode failed', () => {
+    const apply = vi.fn()
+    const loader = createImageLoader(apply, 16, 100)
+    loader.load(['broken'])
+    img('broken').onerror!()
+    // An edit/zoom/slide change re-collects the same url: it must not be re-queued
+    loader.load(['broken', 'broken'])
+    loader.load(['broken'])
+    expect(FakeImage.instances.map((i) => i.src)).toEqual(['broken'])
+    expect(loader.pending()).toBe(0)
+    expect(apply).not.toHaveBeenCalled()
+  })
+})
+
+describe('metafile rasterization waits for private fonts', () => {
+  const flag = window as { __genofficeDocFontsSynced?: boolean }
+  beforeEach(() => {
+    FakeImage.instances = []
+    vi.stubGlobal('Image', FakeImage)
+    vi.useFakeTimers()
+    vi.stubGlobal('atob', (b: string) => Buffer.from(b, 'base64').toString('binary'))
+    vi.mocked(metafileToDataUrl).mockClear()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+    delete flag.__genofficeDocFontsSynced
+  })
+
+  it('holds the EMF until the doc-fonts sync flag flips, then rasterizes', async () => {
+    flag.__genofficeDocFontsSynced = false
+    const loader = createImageLoader(vi.fn(), 16, 100)
+    loader.load(['data:image/x-emf;base64,AQAAAA=='])
+    await vi.advanceTimersByTimeAsync(300)
+    expect(metafileToDataUrl).not.toHaveBeenCalled()
+    flag.__genofficeDocFontsSynced = true
+    await vi.advanceTimersByTimeAsync(100)
+    expect(metafileToDataUrl).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not wait when no sync has started', async () => {
+    const loader = createImageLoader(vi.fn(), 16, 100)
+    loader.load(['data:image/x-emf;base64,AQAAAA=='])
+    await vi.advanceTimersByTimeAsync(0)
+    expect(metafileToDataUrl).toHaveBeenCalledTimes(1)
+  })
+
+  it('refuses oversized metafiles before base64 decoding', async () => {
+    const apply = vi.fn()
+    const loader = createImageLoader(apply, 16, 100)
+    const huge = `data:image/x-emf;base64,${'A'.repeat(MAX_METAFILE_BASE64_CHARS + 1)}`
+    loader.load([huge])
+    await vi.advanceTimersByTimeAsync(0)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(metafileToDataUrl).not.toHaveBeenCalled()
     expect(apply).not.toHaveBeenCalled()
   })
 })

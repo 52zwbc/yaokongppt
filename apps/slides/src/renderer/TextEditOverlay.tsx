@@ -16,7 +16,7 @@ import {
   applyFontSizeStep,
   DEFAULT_FONT_SIZE_PT,
   type FontSizeStep,
-} from '../shared/font-size'
+} from '@genoffice/pptx-ops/font-size'
 import { bulletRunText } from './bullet-presets'
 
 interface Props {

@@ -1,8 +1,10 @@
 import type { RenderNode } from '@genoffice/pptx-render'
 import { describe, expect, it } from 'vitest'
 import {
+  autoContextTabForElement,
   contextElementTypeForNode,
   contextTabForElement,
+  contextualTabFor,
 } from '../src/renderer/components/context-tabs'
 
 describe('slides contextual ribbon tabs', () => {
@@ -32,7 +34,28 @@ describe('slides contextual ribbon tabs', () => {
     expect(contextElementTypeForNode(textGroup)).toBe('textShape')
   })
 
+  it('auto-switches for dedicated object tools but only reveals the shape tab', () => {
+    expect(autoContextTabForElement('picture')).toBe('pictureFormat')
+    expect(autoContextTabForElement('mixed')).toBe('pictureFormat')
+    expect(autoContextTabForElement('table')).toBe('tableDesign')
+    expect(autoContextTabForElement('chart')).toBe('chartDesign')
+    expect(autoContextTabForElement('shape')).toBeNull()
+    expect(autoContextTabForElement('textShape')).toBeNull()
+    expect(autoContextTabForElement(null)).toBeNull()
+  })
+
   it('does not expose a contextual tab without a supported selection', () => {
     expect(contextTabForElement(null)).toBeNull()
+  })
+
+  it('maps a node straight to the tab a double-click opens', () => {
+    const node = (n: object) => n as unknown as RenderNode
+    expect(contextualTabFor(node({ type: 'picture' }))).toBe('pictureFormat')
+    expect(contextualTabFor(node({ type: 'picture', media: 'video' }))).toBe('pictureFormat')
+    expect(contextualTabFor(node({ type: 'chart' }))).toBe('chartDesign')
+    expect(contextualTabFor(node({ type: 'table' }))).toBe('tableDesign')
+    expect(contextualTabFor(node({ type: 'shape', line: {} }))).toBe('shapeFormat')
+    expect(contextualTabFor(node({ type: 'group', children: [] }))).toBe('shapeFormat')
+    expect(contextualTabFor(node({ type: 'placeholder-chip' }))).toBeNull()
   })
 })

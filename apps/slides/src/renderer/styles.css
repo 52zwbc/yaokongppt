@@ -9,48 +9,56 @@
   src: url('@genoffice/ui/fonts/Carlito-Regular.ttf');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito';
   src: url('@genoffice/ui/fonts/Carlito-Bold.ttf');
   font-weight: bold;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito';
   src: url('@genoffice/ui/fonts/Carlito-Italic.ttf');
   font-weight: normal;
   font-style: italic;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito';
   src: url('@genoffice/ui/fonts/Carlito-BoldItalic.ttf');
   font-weight: bold;
   font-style: italic;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-Regular.ttf');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-Bold.ttf');
   font-weight: bold;
   font-style: normal;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-Italic.ttf');
   font-weight: normal;
   font-style: italic;
+  font-display: block;
 }
 @font-face {
   font-family: 'Carlito GO';
   src: url('@genoffice/ui/fonts/Carlito-BoldItalic.ttf');
   font-weight: bold;
   font-style: italic;
+  font-display: block;
 }
 
 /* Per-app accent (powerpoint-orange family) + slides-only tokens.
@@ -104,6 +112,7 @@
   --slides-anim-emph: #c28e00;
   --slides-anim-exit: #c43e1c;
   --slides-anim-path: #2b7cd3;
+  --slides-anim-media: #7a5cc4;
   --slides-choice-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 
   /* content-side constants: thumbnails/sorter/master previews and layout
@@ -137,6 +146,7 @@
   /* black playback chrome (slideshow / presenter / reading view) holds in
    * both themes; numeric suffix = white alpha % */
   --slides-show-black: #000;
+  --slides-show-white: #fff;
   --slides-show-ink: #fff;
   --slides-show-ink-88: rgb(255 255 255 / 88%);
   --slides-show-ink-85: rgb(255 255 255 / 85%);
@@ -235,6 +245,7 @@
   --slides-anim-emph: #d9a834;
   --slides-anim-exit: #e8663f;
   --slides-anim-path: #5aa0e8;
+  --slides-anim-media: #a58cf0;
   --slides-choice-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='%231e1e1e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 }
 
@@ -283,6 +294,7 @@
     --slides-anim-emph: #d9a834;
     --slides-anim-exit: #e8663f;
     --slides-anim-path: #5aa0e8;
+    --slides-anim-media: #a58cf0;
     --slides-choice-check: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.5 6.5l2.5 2.5 4.5-5' fill='none' stroke='%231e1e1e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   }
 }
@@ -1121,6 +1133,11 @@ body.vib .slide-list {
   box-shadow: 0 7px 0 -2.5px var(--accent);
 }
 
+.thumb.selected {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
 .thumb.active {
   border-color: var(--accent);
 }
@@ -1228,7 +1245,10 @@ body.vib .slide-list {
   outline: none;
 }
 
+/* the stage stays ltr under an RTL UI: Konva Text inherits this direction */
+
 .stage-wrap {
+  direction: ltr;
   flex: 1;
   overflow: auto;
   /* 48px top: headroom for the .stage-ai-bar overhanging the slide card, so it
@@ -1373,42 +1393,15 @@ body.vib .slide-list {
 
 .status-bar {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
-  height: 48px;
-  font-size: 13px;
+  padding: 0 12px;
+  height: 24px;
+  font-size: 11.5px;
   color: var(--text-dim);
   background: var(--slides-statusbar-bg);
   border-top: 1px solid var(--slides-statusbar-border);
-}
-
-/* 中间：定制说明 + 版本号 */
-.status-center {
-  justify-self: center;
-  opacity: 0.75;
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.status-credit {
-  font-size: 12.5px;
-  color: #3b82f6;
-  font-weight: 700;
-  opacity: 1;
-  max-width: 44vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status-ver {
-  flex-shrink: 0;
 }
 
 .status-left {
@@ -1435,47 +1428,17 @@ body.vib .slide-list {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  justify-self: end;
-}
-
-/* 开机自启开关（状态栏左侧，幻灯片页码右边） */
-.status-autolaunch {
-  flex-shrink: 0;
-  margin-right: 12px;
-  padding: 0 11px;
-  height: 28px;
-  line-height: 28px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--slides-statusbar-border);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  opacity: 0.8;
-  transition: opacity 0.15s, background 0.15s;
-}
-
-.status-autolaunch:hover {
-  opacity: 1;
-}
-
-.status-autolaunch.on {
-  opacity: 1;
-  background: var(--slides-accent, #2563eb);
-  border-color: transparent;
-  color: #fff;
 }
 
 .zoom-btn {
   border: none;
   background: none;
   color: inherit;
-  font-size: 17px;
+  font-size: 14px;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
   line-height: 1;
 }
 
@@ -1519,17 +1482,18 @@ body.vib .slide-list {
 .status-notes-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border: none;
   background: none;
   color: inherit;
-  font-size: 12px;
-  /* 28px tall in the 48px status bar: the active/hover block keeps air above/below */
-  height: 28px;
-  padding: 0 8px;
-  border-radius: 4px;
+  font-size: 11px;
+  /* 20px tall in the 24px status bar: the active/hover block keeps 2px of
+   * air above and below instead of touching the bar edges */
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 3px;
   cursor: pointer;
-  margin-right: 10px;
+  margin-right: 8px;
   transition:
     background 0.1s,
     color 0.1s;
@@ -1550,22 +1514,17 @@ body.vib .slide-list {
 .status-play-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   border: none;
-  background: #dc2626;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  height: 32px;
-  padding: 0 14px;
-  border-radius: 6px;
+  background: none;
+  color: inherit;
+  padding: 1px 4px;
+  border-radius: 3px;
   cursor: pointer;
-  margin-right: 10px;
-  transition: background 0.12s;
+  margin-right: 8px;
 }
 
 .status-play-btn:hover {
-  background: #b91c1c;
+  background: var(--hover);
 }
 
 /* ================= AI panel (Copilot-style pane, isomorphic to docs) ================= */
@@ -1577,7 +1536,8 @@ body.vib .slide-list {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--border);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--border);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--border);
   box-shadow: var(--slides-shadow-copilot);
   font-family: var(--gs-font-sans);
   color: var(--color-text-primary);
@@ -1668,7 +1628,8 @@ body.vib .slide-list {
   width: 34px;
   padding: 12px 2px;
   border: none;
-  border-right: 1px solid var(--border);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--border);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -3256,6 +3217,35 @@ body.vib .slide-list {
   margin-bottom: 12px;
 }
 
+/* Explanatory sentence under a dialog heading, above its controls */
+.modal-note {
+  margin: -6px 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* The `{{label}}` the model will read in place of the words, shown as it is typed */
+.redact-preview {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  color: var(--text-dim);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 12px;
+  word-break: break-all;
+  user-select: all;
+}
+
+/* A withheld run while editing: the underline the mark stands for, plus a tint so a long
+   withheld span reads as one thing. The canvas draws the underline from the model. */
+.slide-text-editor [data-redact] {
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border-strong);
+}
+
 .modal input,
 .modal select {
   display: block;
@@ -3449,15 +3439,19 @@ body.vib .slide-list {
 }
 
 /* Second-level tabs (填充与线条 / 效果 / 大小与属性 …): 源项目 segmented pill track —
-   pills sit in one rounded gray track; active = accent-filled pill */
+   pills sit in one rounded gray track; active = accent-filled pill. Long locales
+   (fr/de/es labels exceed the 260px pane) wrap onto a second row instead of
+   clipping at the pane edge; 16px ≈ the stadium radius at single-row height. */
 .fp-subtabs {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
   gap: 2px;
   width: fit-content;
+  max-width: calc(100% - 12px);
   margin: 10px 6px 0;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: 16px;
   background: var(--hover);
 }
 
@@ -4383,8 +4377,12 @@ body.vib .slide-list {
   top: calc(anchor(bottom) + 6px);
   left: anchor(left);
   /* near the right window edge, right-align to the trigger instead of
-     spilling past the (now clipped) viewport */
-  position-try-fallbacks: flip-inline;
+     spilling past the (now clipped) viewport; near the bottom edge (e.g. a
+     collapsed-group flyout on a short window), open above the trigger */
+  position-try-fallbacks:
+    flip-inline,
+    flip-block,
+    flip-block flip-inline;
   /* trigger scrolled out of the ribbon → hide the panel with it */
   position-visibility: anchors-visible;
   z-index: 60;
@@ -4707,56 +4705,38 @@ body.vib .slide-list {
   font-size: 12px;
   color: var(--text-dim);
   margin-bottom: 6px;
+  text-align: center;
   white-space: nowrap;
 }
 
 .rb-table-grid {
   display: grid;
-  grid-template-columns: repeat(10, 16px);
+  grid-template-columns: repeat(10, 18px);
   gap: 3px;
 }
 
+/* "Insert Table…" entry under the hover grid (opens the rows/cols dialog) */
 .rb-table-custom {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
+  width: 100%;
   margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-strong);
-}
-
-.rb-table-custom input {
-  width: 46px;
-  padding: 2px 4px;
+  padding: 5px 6px;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 4px 4px;
+  background: none;
+  color: var(--text);
   font-size: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  background: var(--surface);
-  color: inherit;
-}
-
-.rb-table-custom span {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.rb-table-custom-ok {
-  margin-left: auto;
-  padding: 2px 10px;
-  font-size: 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 3px;
-  background: var(--surface);
+  text-align: left;
   cursor: pointer;
 }
 
-.rb-table-custom-ok:hover {
-  background: var(--active-bg);
-  border-color: var(--accent);
+.rb-table-custom:hover {
+  background: var(--hover);
 }
 
 .rb-table-cell {
-  width: 16px;
+  width: 18px;
   height: 16px;
   border: 1px solid var(--border-strong);
   border-radius: 2px;
@@ -4872,6 +4852,59 @@ body.vib .slide-list {
   background: var(--surface);
 }
 
+/* Extra symbols + custom character + picture bullet */
+.rb-bullet-custom {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  max-width: 236px;
+}
+
+.rb-bullet-sym {
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.rb-bullet-sym:hover:not(:disabled),
+.rb-bullet-sym.on,
+.rb-bullet-hang.on {
+  background: var(--active-bg);
+  border-color: var(--accent);
+}
+
+.rb-bullet-sym:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rb-bullet-sym-input,
+.rb-bullet-start-input {
+  width: 72px;
+  cursor: text;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.rb-bullet-sym-input {
+  width: 108px;
+}
+
+/* Numbering tiles: "1." / "II." / "iii." samples are wider than a bullet glyph */
+.rb-bullet-tile-num {
+  width: auto;
+  min-width: 10px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
 /* Bullet color row: swatches + "More colors" on its own line */
 .rb-bullet-colors {
   flex-wrap: wrap;
@@ -4916,6 +4949,10 @@ body.vib .slide-list {
 
 .rb-anim-path {
   color: var(--slides-anim-path);
+}
+
+.rb-anim-media {
+  color: var(--slides-anim-media);
 }
 
 .rb-anim-menu {
@@ -5001,6 +5038,10 @@ body.vib .slide-list {
 
 .anim-row.anim-path {
   border-left-color: var(--slides-anim-path);
+}
+
+.anim-row.anim-media {
+  border-left-color: var(--slides-anim-media);
 }
 
 .anim-row-no {
@@ -5136,6 +5177,32 @@ body.vib .slide-list {
   height: 1px;
   background: var(--border);
   margin: 4px 6px;
+}
+
+.ctx-item.ctx-checked > span:first-child::before {
+  content: '✓\00a0';
+}
+
+.ctx-sub-host {
+  position: relative;
+}
+
+.ctx-item.ctx-sub-open {
+  background: var(--hover);
+}
+
+.ctx-menu.ctx-submenu {
+  position: absolute;
+  left: 100%;
+  top: -5px;
+  margin-left: 2px;
+}
+
+.ctx-menu.ctx-submenu.ctx-submenu-left {
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 2px;
 }
 
 .ctx-swatches {
@@ -6089,6 +6156,11 @@ body.vib .slide-list {
   border-color: var(--text-dim);
 }
 
+.sorter-item.selected {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
 .sorter-item.active {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-soft);
@@ -6385,16 +6457,6 @@ body.show-curtain::after {
 
 .slideshow .ss-frame {
   line-height: 0;
-  position: relative;
-  z-index: 2;
-}
-
-/* 白板/黑板背景层：整屏纯色，位于幻灯片之下、笔触与工具栏之上 */
-.slideshow .ss-whiteboard {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
 }
 
 /* Page transition animations: CSS approximations of the Transitions-tab PowerPoint effects (applied to the entering page) */
@@ -6465,7 +6527,7 @@ body.show-curtain::after {
 
 .slideshow .ss-counter {
   position: absolute;
-  left: 14px;
+  right: 14px;
   bottom: 10px;
   font-size: 12px;
   color: var(--slides-show-ink-40);
@@ -6474,128 +6536,6 @@ body.show-curtain::after {
   padding: 3px 8px;
   line-height: 1;
   pointer-events: none;
-  z-index: 60;
-}
-
-/* ── Show toolbar (bottom-right, always visible, touch-friendly) ── */
-.slideshow .ss-toolbar {
-  position: absolute;
-  right: 14px;
-  bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 60;
-}
-
-.slideshow .ss-tool {
-  width: 54px;
-  height: 54px;
-  border: 2px solid rgba(255, 255, 255, 0.85);
-  box-sizing: border-box;
-  border-radius: 50%;
-  background: rgba(20, 20, 20, 0.55);
-  color: #fff;
-  font-size: 24px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  touch-action: manipulation;
-  transition: background 0.12s ease;
-}
-
-.slideshow .ss-tool:hover {
-  background: rgba(20, 20, 20, 0.82);
-}
-
-.slideshow .ss-tool:active {
-  transform: scale(0.94);
-}
-
-.slideshow .ss-rollcall {
-  background: rgba(37, 99, 235, 0.7);
-  font-size: 26px;
-}
-
-.slideshow .ss-rollcall:hover {
-  background: rgba(37, 99, 235, 0.92);
-}
-
-.slideshow .ss-pen-on {
-  background: #e53935;
-}
-
-.slideshow .ss-exit {
-  /* 与导航按钮一致：白色描边 X，不再用红色背景 */
-  background: rgba(20, 20, 20, 0.55);
-  font-size: 22px;
-}
-
-.slideshow .ss-exit:hover {
-  background: rgba(20, 20, 20, 0.82);
-}
-
-/* Pen color swatches (appear left of the prev button when pen is on) */
-.slideshow .ss-color {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-  touch-action: manipulation;
-}
-
-.slideshow .ss-color-on {
-  border-color: #fff;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
-}
-
-/* 背景模式下被选中的颜色：用外圈高亮提示“点此设整屏背景” */
-.slideshow .ss-color.ss-bg-on {
-  border-color: #ffd54f;
-  box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.9);
-}
-
-/* 放映导航“显示桌面”按钮 */
-.slideshow .ss-showdesktop {
-  background: rgba(20, 20, 20, 0.55);
-  font-size: 22px;
-}
-
-.slideshow .ss-showdesktop:hover {
-  background: rgba(20, 20, 20, 0.82);
-}
-
-/* 画笔“前景/背景”切换按钮 */
-.slideshow .ss-penmode {
-  width: auto;
-  min-width: 54px;
-  padding: 0 12px;
-  font-size: 16px;
-  font-weight: 600;
-  background: rgba(20, 20, 20, 0.55);
-  border-color: rgba(255, 255, 255, 0.85);
-}
-
-.slideshow .ss-penmode.ss-mode-bg {
-  background: #ffd54f;
-  color: #222;
-  border-color: #ffd54f;
-}
-
-/* Pen drawing capture layer (over the slide frame while pen is on) */
-.slideshow .ss-ink-capture {
-  position: absolute;
-  inset: 0;
-  z-index: 6;
-  touch-action: none;
-  cursor: crosshair;
 }
 
 .slideshow .ss-end {
@@ -6610,11 +6550,61 @@ body.show-curtain::after {
   line-height: 0;
 }
 
-.slideshow .ss-black {
+.slideshow .ss-black,
+.slideshow .ss-white {
   position: fixed;
   inset: 0;
   background: var(--slides-show-black);
   z-index: 10;
+}
+
+.slideshow .ss-white {
+  background: var(--slides-show-white);
+}
+
+/* "See All Slides" overlay: numbered thumbnails of the play order, click to jump */
+.slideshow .ss-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 18px;
+  padding: 28px;
+  background: var(--slides-show-black);
+}
+
+.slideshow .ss-grid-item {
+  position: relative;
+  flex: none;
+  line-height: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.slideshow .ss-grid-item:hover,
+.slideshow .ss-grid-item.ss-grid-cur {
+  opacity: 1;
+  border-color: var(--slides-show-ink-75);
+}
+
+.slideshow .ss-grid-num {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--slides-show-ink);
+  background: var(--slides-show-pill-bg);
+  border-radius: 4px;
+  padding: 3px 7px;
 }
 
 /* Show ink overlay (presenter pen/laser pointer, mirrored for the audience) */
@@ -6978,10 +6968,15 @@ body.show-curtain::after {
   cursor: none;
 }
 
-.presenter .pv-black {
+.presenter .pv-black,
+.presenter .pv-white {
   position: absolute;
   inset: 0;
   background: var(--slides-show-black);
+}
+
+.presenter .pv-white {
+  background: var(--slides-show-white);
 }
 
 .presenter .pv-end {
@@ -7338,10 +7333,88 @@ body.show-curtain::after {
   max-width: 90vw;
 }
 
+.modal.zoom-dlg {
+  width: 720px;
+  max-width: 90vw;
+}
+
+.zoom-dlg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 164px);
+  justify-content: center;
+  gap: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.zoom-dlg-item {
+  padding: 0;
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--slides-paper);
+  overflow: hidden;
+  line-height: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.zoom-dlg-item:hover:not(:disabled) {
+  border-color: var(--text-dim);
+}
+
+.zoom-dlg-item.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.zoom-dlg-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.zoom-dlg-caption {
+  display: block;
+  padding: 4px 6px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--text-dim);
+  background: var(--surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zoom-dlg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.zoom-dlg-footer .modal-actions {
+  margin-top: 0;
+}
+
+.zoom-dlg-count {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
 .dlg-radio-row {
   display: flex;
   gap: 18px;
   margin-bottom: 12px;
+}
+
+.dlg-two-col {
+  display: flex;
+  gap: 12px;
+}
+
+.dlg-two-col > label {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Override .modal label / .modal input full-row styles: checkbox/radio rows lay out inline */
@@ -8037,7 +8110,8 @@ body.show-curtain::after {
   flex-shrink: 0;
 }
 
-.deck-progress-icon.done {
+.deck-progress-icon.done,
+.deck-progress-icon.stopped {
   color: var(--color-text-secondary);
 }
 .deck-progress-icon.error {
@@ -9072,40 +9146,186 @@ body.show-curtain::after {
 }
 
 .app-content {
+  position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
 }
 
-/* ── 放映远程控制（状态条 + 弹窗）── */
-.status-rc {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 8px;
-  padding: 3px 8px;
-  border: none;
-  border-radius: 6px;
-  background: #1d4ed8;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
+/* Editing overlay bullets: the canvas hides the edited node's text, so each paragraph div
+ * draws its bullet as a ::before filling the hanging indent (set by TextEditOverlay) */
+.slide-text-editor > div[data-bullet-text]::before {
+  content: attr(data-bullet-text);
+  display: inline-block;
+  /* hangs into the left margin like the canvas bullet; the width past the hang pushes the text */
+  margin-left: calc(-1 * var(--bullet-hang));
+  width: var(--bullet-w);
+  /* zero line box: a glyph larger than the text keeps the baseline without growing the line */
+  line-height: 0;
+  font-family: var(--bullet-font, inherit);
+  font-size: var(--bullet-size, inherit);
+  font-weight: var(--bullet-weight, normal);
+  color: var(--bullet-color, inherit);
+  white-space: pre;
+  user-select: none;
+  pointer-events: none;
 }
-.status-rc .status-rc-url {
-  max-width: 220px;
+.slide-text-editor > div[data-bullet-img] {
+  position: relative;
+}
+/* Picture bullet: the ::before (an invisible glyph) reserves the hanging indent, the ::after paints the image */
+.slide-text-editor > div[data-bullet-img]::after {
+  content: '';
+  position: absolute;
+  left: var(--bullet-x);
+  top: var(--bullet-y);
+  width: var(--bullet-img-w);
+  height: var(--bullet-h);
+  background: var(--bullet-img) center / contain no-repeat;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 中间：定制说明 + 版本号 */
+.status-center {
+  justify-self: center;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.status-credit {
+  font-size: 12.5px;
+  color: #3b82f6;
+  font-weight: 700;
+  opacity: 1;
+  max-width: 44vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  opacity: 0.95;
 }
-.status-rc .status-rc-stop {
+
+.status-ver {
+  flex-shrink: 0;
+}
+
+
+/* 开机自启开关（状态栏左侧，幻灯片页码右边） */
+.status-autolaunch {
+  flex-shrink: 0;
+  margin-right: 12px;
+  padding: 0 11px;
+  height: 28px;
+  line-height: 28px;
+  font-size: 12px;
   font-weight: 600;
-  text-decoration: underline;
+  border: 1px solid var(--slides-statusbar-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s, background 0.15s;
 }
-.status-rc:hover {
-  filter: brightness(1.08);
+
+.status-autolaunch:hover {
+  opacity: 1;
 }
+
+.status-autolaunch.on {
+  color: #fff;
+}
+
+/* 启动赞赏弹窗：免费说明 + 赞赏码，右上角 X / 关闭仅关本次，“已扫码”永久屏蔽 */
+.donate-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+}
+.donate-modal {
+  position: relative;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  color: #0f172a;
+  border-radius: 14px;
+  padding: 26px 24px 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+.donate-modal-x {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.donate-modal-x:hover {
+  color: #0f172a;
+}
+.donate-modal-text {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.7;
+  margin-bottom: 14px;
+  text-align: left;
+}
+.donate-modal-qr {
+  width: 240px;
+  max-width: 100%;
+  margin: 0 auto 16px;
+  display: block;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.donate-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.donate-modal-close {
+  min-width: 120px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.donate-modal-close:hover {
+  filter: brightness(0.96);
+}
+.donate-modal-primary {
+  min-width: 150px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #16a34a;
+  color: #fff;
+}
+.donate-modal-primary:hover {
+  filter: brightness(0.95);
+}
+
 
 .rc-modal-mask {
   position: fixed;
@@ -9255,86 +9475,3 @@ body.show-curtain::after {
 }
 
 /* 启动赞赏弹窗：免费说明 + 赞赏码，右上角 X / 关闭仅关本次，“已扫码”永久屏蔽 */
-.donate-modal-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 1001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.55);
-}
-.donate-modal {
-  position: relative;
-  width: 380px;
-  max-width: calc(100vw - 32px);
-  background: #fff;
-  color: #0f172a;
-  border-radius: 14px;
-  padding: 26px 24px 18px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
-  text-align: center;
-}
-.donate-modal-x {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  border: none;
-  background: transparent;
-  font-size: 22px;
-  line-height: 1;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 4px 6px;
-}
-.donate-modal-x:hover {
-  color: #0f172a;
-}
-.donate-modal-text {
-  font-size: 14px;
-  color: #334155;
-  line-height: 1.7;
-  margin-bottom: 14px;
-  text-align: left;
-}
-.donate-modal-qr {
-  width: 240px;
-  max-width: 100%;
-  margin: 0 auto 16px;
-  display: block;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-.donate-modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-.donate-modal-close {
-  min-width: 120px;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  background: #e2e8f0;
-  color: #0f172a;
-}
-.donate-modal-close:hover {
-  filter: brightness(0.96);
-}
-.donate-modal-primary {
-  min-width: 150px;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  background: #16a34a;
-  color: #fff;
-}
-.donate-modal-primary:hover {
-  filter: brightness(0.95);
-}

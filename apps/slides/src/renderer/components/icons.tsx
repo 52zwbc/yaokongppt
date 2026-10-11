@@ -61,6 +61,15 @@ export function IconFind(props: IconProps) {
   )
 }
 
+export function IconPhone(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="6.5" y="3" width="11" height="18" rx="2.2" />
+      <path d="M 10.5 18.2 h 3" />
+    </Svg>
+  )
+}
+
 export function IconBullets(props: IconProps) {
   return (
     <Svg {...props}>

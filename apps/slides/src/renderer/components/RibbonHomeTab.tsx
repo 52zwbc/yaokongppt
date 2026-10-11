@@ -1,13 +1,17 @@
 /** Home tab of the slides ribbon. Extracted from Ribbon.tsx. */
 import { useState } from 'react'
 import { platformShortcuts } from '@genoffice/i18n'
-import { ColorPicker, isSymbolFontFamily } from '@genoffice/ui'
+import { ColorPicker, isSymbolFontFamily, partitionFontFamilies } from '@genoffice/ui'
 import { saveEditSelection } from '../TextEditOverlay'
 import { armColorInput } from '../color-input'
 import { displayFontFamily } from '../konva-adapter'
 import { useSystemFontFamilies } from '../system-fonts'
 import { useFontCatalog } from '../font-manager'
 import {
+  GensparkMark,
+  IconAiBeautify,
+  IconAiFactCheck,
+  IconAiImage,
   IconAlignCenter,
   IconAlignJustify,
   IconAlignLeft,
@@ -58,6 +62,16 @@ import {
   closeSiblingPanels,
   type RibbonTabCtx,
 } from './ribbon-shared'
+import {
+  BULLET_HANG_PRESETS,
+  BULLET_PRESETS,
+  EXTRA_BULLET_SYMBOLS,
+  NUMBER_PRESETS,
+  bulletRunText,
+} from '../bullet-presets'
+
+/** The New Slide screentip shows the platform's real chord: ⇧⌘N on mac, Ctrl+M elsewhere. */
+const IS_MAC = navigator.platform.toLowerCase().includes('mac')
 
 // Symbol fonts (Wingdings & co.) render their own name as pictographs, so the
 // picker shows those names in the UI font (like Word) instead of the font itself.
@@ -66,6 +80,7 @@ const fontPreviewFamily = (f: string): string | undefined =>
 
 export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
   const {
+    aiOpen,
     brushMode,
     canDistribute,
     canPaste,
@@ -87,6 +102,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
     onAddSection,
     onAddSlide,
     onAddSlideWithLayout,
+    onAiPreset,
     onAlign,
     onDirection,
     onArrange,
@@ -110,6 +126,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
     onStrike,
     onTextColor,
     onTextToggle,
+    onToggleAi,
     onToggleFormat,
     arrangeOpen,
     closePanels,
@@ -152,7 +169,7 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
   // Typed-ahead font query: only what the user actually typed filters the menu
   // (opening via the caret or focusing shows the full list)
   const [fontFilter, setFontFilter] = useState('')
-  const { families: systemFontFamilies, load: loadSystemFonts } = useSystemFontFamilies()
+  const { families: allSystemFontFamilies, load: loadSystemFonts } = useSystemFontFamilies()
   const {
     catalog: fontCatalog,
     busy: fontBusy,
@@ -161,6 +178,16 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
     download: downloadFont,
     installLocal: installLocalFonts,
   } = useFontCatalog()
+  // Store fonts are invisible to queryLocalFonts, so installed catalog families
+  // count as known even though the enumeration misses them.
+  const installedCatalogFamilies = fontCatalog.filter((c) => c.installed).map((c) => c.family)
+  // Candidates the machine proves absent drop out; when enumeration is
+  // unavailable the full candidate list stays visible.
+  const { builtin: fontFamilies, system: systemFontFamilies } = partitionFontFamilies(
+    FONT_FAMILIES,
+    allSystemFontFamilies,
+    installedCatalogFamilies,
+  )
   // Catalog families stay listed after install (store fonts are invisible to
   // queryLocalFonts). Installed ones dedupe against the built-in/system sections;
   // uninstalled ones always show here so built-in names like Noto Sans JP keep an
@@ -178,8 +205,85 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
     if (!Number.isFinite(px) || px < 0 || !hasSelection) return
     onParagraphFormat({ bulletHangEmu: Math.round(px * EMU_PER_PX) })
   }
+  const [symDraft, setSymDraft] = useState('')
+  const commitSymDraft = () => {
+    const ch = [...symDraft.trim()][0]
+    if (!ch || !hasSelection) return
+    onParagraphFormat({ bullet: 'char', bulletChar: ch })
+  }
+  const [startDraft, setStartDraft] = useState('')
+  const commitStartDraft = () => {
+    const n = parseInt(startDraft, 10)
+    if (!Number.isInteger(n) || n < 1 || !hasSelection) return
+    onParagraphFormat({ startAt: n })
+  }
+  const pickBulletPicture = async () => {
+    const picked = await window.slidesApi.pickPictureFile()
+    if (picked) onParagraphFormat({ bullet: 'blip', bulletImage: picked })
+  }
+  const draftKeys = (commit: () => void) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      commit()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.currentTarget.blur()
+    }
+  }
   return (
     <>
+      <Group label="源项目 AI">
+        <button
+          className={`rb-big ai-entry${aiOpen ? ' active' : ''}`}
+          data-tip={t('aiOpenAssistant')}
+          onClick={onToggleAi}
+        >
+          <span className="rb-big-icon">
+            <GensparkMark size={26} />
+          </span>
+          <span>源项目 AI</span>
+        </button>
+        <button
+          className="rb-big ai-entry"
+          disabled={!hasDoc || deckEmpty}
+          data-tip={t('aiBeautifyBtn')}
+          onClick={() => onAiPreset(t('aiBeautifyPrompt'), { slideShot: true })}
+        >
+          <span className="rb-big-icon">
+            <span className="ai-feature-icon" aria-hidden="true">
+              <IconAiBeautify />
+            </span>
+          </span>
+          <span>{t('aiBeautifyBtn')}</span>
+        </button>
+        <button
+          className="rb-big ai-entry"
+          disabled={!hasDoc || deckEmpty}
+          data-tip={t('aiFactCheckBtn')}
+          onClick={() => onAiPreset(t('aiFactCheckPrompt'))}
+        >
+          <span className="rb-big-icon">
+            <span className="ai-feature-icon" aria-hidden="true">
+              <IconAiFactCheck />
+            </span>
+          </span>
+          <span>{t('aiFactCheckBtn')}</span>
+        </button>
+        <button
+          className="rb-big ai-entry"
+          disabled={!hasDoc || deckEmpty}
+          data-tip={t('aiImageBtn')}
+          onClick={() => onAiPreset(t('aiImagePrompt'))}
+        >
+          <span className="rb-big-icon">
+            <span className="ai-feature-icon" aria-hidden="true">
+              <IconAiImage />
+            </span>
+          </span>
+          <span>{t('aiImageBtn')}</span>
+        </button>
+      </Group>
+      <div className="ribbon-sep" />
       <Group label={t('ribbonGroupClipboard')}>
         <button
           className="rb-big"
@@ -332,7 +436,8 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
             className="rb-big rb-split"
             disabled={!hasDoc}
             onClick={onAddSlide}
-            data-tip={t('ribbonNewSlideTip')}
+            data-tip={platformShortcuts(t('ribbonNewSlideTip'))}
+            data-tip-kbd={IS_MAC ? '⇧⌘N' : 'Ctrl+M'}
           >
             <span className="rb-big-icon">
               <span className="rb-split-main">
@@ -506,10 +611,10 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
                   onMouseDown={(e) => e.stopPropagation()}
                 >
                   {(curFontFamily &&
-                  !FONT_FAMILIES.includes(curFontFamily) &&
+                  !fontFamilies.includes(curFontFamily) &&
                   !systemFontFamilies.includes(curFontFamily)
-                    ? [curFontFamily, ...FONT_FAMILIES]
-                    : FONT_FAMILIES
+                    ? [curFontFamily, ...fontFamilies]
+                    : fontFamilies
                   )
                     .filter(matchesFontFilter)
                     // Built-in names that are uninstalled catalog fonts render in the
@@ -889,35 +994,106 @@ export function RibbonHomeTab({ rb }: { rb: RibbonTabCtx }) {
                   >
                     {t('ribbonNone')}
                   </button>
-                  {['•', '○', '▪', '◆', '-', '✓', '►', '※'].map((g) => (
+                  {BULLET_PRESETS.map((p) => (
                     <button
-                      key={g}
-                      className={`rb-bullet-tile ${curBulletChar === g ? 'on' : ''}`}
+                      key={p.glyph}
+                      className={`rb-bullet-tile ${curBulletChar === bulletRunText(p.char, p.font) ? 'on' : ''}`}
                       disabled={!hasSelection}
                       data-tip={t('ribbonBulletChar')}
                       onMouseDown={(e) => {
                         e.preventDefault()
-                        if (hasSelection) onParagraphFormat({ bullet: 'char', bulletChar: g })
+                        if (hasSelection)
+                          onParagraphFormat({
+                            bullet: 'char',
+                            bulletChar: p.char,
+                            bulletFont: p.font,
+                          })
                       }}
                     >
                       {[0, 1, 2].map((i) => (
                         <span key={i} className="rb-bullet-tile-row">
-                          <span className="rb-bullet-tile-glyph">{g}</span>
+                          <span className="rb-bullet-tile-glyph">{p.glyph}</span>
                           <span className="rb-bullet-tile-bar" />
                         </span>
                       ))}
                     </button>
                   ))}
                 </div>
+                <div className="rb-row rb-bullet-custom">
+                  {EXTRA_BULLET_SYMBOLS.map((ch) => (
+                    <button
+                      key={ch}
+                      className={`rb-bullet-sym ${curBulletChar === ch ? 'on' : ''}`}
+                      disabled={!hasSelection}
+                      data-tip={t('ribbonBulletCustom')}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        if (hasSelection) onParagraphFormat({ bullet: 'char', bulletChar: ch })
+                      }}
+                    >
+                      {ch}
+                    </button>
+                  ))}
+                  <input
+                    className="rb-bullet-hang rb-bullet-sym-input"
+                    disabled={!hasSelection}
+                    data-tip={t('ribbonBulletCustomTip')}
+                    placeholder={t('ribbonBulletCustom')}
+                    value={symDraft}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onChange={(e) => setSymDraft(e.target.value)}
+                    onKeyDown={draftKeys(commitSymDraft)}
+                  />
+                  <button
+                    className={`rb-bullet-hang ${curBulletChar === '#img' ? 'on' : ''}`}
+                    disabled={!hasSelection}
+                    data-tip={t('ribbonBulletPicture')}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      if (hasSelection) void pickBulletPicture()
+                    }}
+                  >
+                    {t('ribbonBulletPicture')}
+                  </button>
+                </div>
+                <div className="rb-para-label">{t('ribbonNumberStyle')}</div>
+                <div className="rb-bullet-grid">
+                  {NUMBER_PRESETS.map((p) => (
+                    <button
+                      key={p.numType}
+                      className={`rb-bullet-tile ${curBulletChar === `#num:${p.numType}` ? 'on' : ''}`}
+                      disabled={!hasSelection}
+                      data-tip={t('ribbonNumberStyle')}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        if (hasSelection)
+                          onParagraphFormat({ bullet: 'number', numType: p.numType })
+                      }}
+                    >
+                      {p.sample.map((s, i) => (
+                        <span key={i} className="rb-bullet-tile-row">
+                          <span className="rb-bullet-tile-glyph rb-bullet-tile-num">{s}</span>
+                          <span className="rb-bullet-tile-bar" />
+                        </span>
+                      ))}
+                    </button>
+                  ))}
+                  <input
+                    className="rb-bullet-hang rb-bullet-start-input"
+                    type="number"
+                    min={1}
+                    disabled={!hasSelection}
+                    data-tip={t('ribbonNumberStartAtTip')}
+                    placeholder={t('ribbonNumberStartAt')}
+                    value={startDraft}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onChange={(e) => setStartDraft(e.target.value)}
+                    onKeyDown={draftKeys(commitStartDraft)}
+                  />
+                </div>
                 <div className="rb-para-label">{t('ribbonBulletHang')}</div>
                 <div className="rb-row">
-                  {(
-                    [
-                      ['ribbonBulletHangNarrow', 114300],
-                      ['ribbonBulletHangNormal', 228600],
-                      ['ribbonBulletHangWide', 342900],
-                    ] as const
-                  ).map(([key, emu]) => (
+                  {BULLET_HANG_PRESETS.map(([key, emu]) => (
                     <button
                       key={key}
                       className="rb-bullet-hang"
