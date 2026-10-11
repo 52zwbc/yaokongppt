@@ -7,6 +7,9 @@
     // Pin resolution to this repo's workspace sources (avoids stale types when node_modules links point elsewhere)
     "baseUrl": ".",
     "paths": {
+      "@genoffice/agent-core": ["../../packages/agent-core/src/index.ts"],
+      "@genoffice/agent-core/redact-range": ["../../packages/agent-core/src/redact-range.ts"],
+      "@genoffice/agent-core/redact-core": ["../../packages/agent-core/src/redact-core.ts"],
       "@genoffice/pptx-engine": ["../../packages/pptx-engine/src/index.ts"],
       "@genoffice/pptx-engine/table-grid": ["../../packages/pptx-engine/src/table-grid.ts"],
       "@genoffice/pptx-engine/identity": ["../../packages/pptx-engine/src/identity.ts"],

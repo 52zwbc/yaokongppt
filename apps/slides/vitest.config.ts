@@ -9,6 +9,15 @@ export default defineConfig({
   resolve: {
     alias: {
       // Subpath before the bare name: string aliases are prefix replacements
+      '@genoffice/agent-core/redact-range': resolve(
+        here,
+        '../../packages/agent-core/src/redact-range.ts',
+      ),
+      '@genoffice/agent-core/redact-core': resolve(
+        here,
+        '../../packages/agent-core/src/redact-core.ts',
+      ),
+      '@genoffice/agent-core': resolve(here, '../../packages/agent-core/src/index.ts'),
       '@genoffice/pptx-engine/table-grid': resolve(
         here,
         '../../packages/pptx-engine/src/table-grid.ts',
