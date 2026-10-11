@@ -13,11 +13,13 @@ import { ar } from './ribbon/ar'
 import { pt } from './ribbon/pt'
 import { it } from './ribbon/it'
 import { pl } from './ribbon/pl'
+import { cs } from './ribbon/cs'
 import { nl } from './ribbon/nl'
 import { ms } from './ribbon/ms'
 import { he } from './ribbon/he'
 import { hi } from './ribbon/hi'
 import { zhTW } from './ribbon/zh-TW'
+import { vi } from './ribbon/vi'
 
 /** Copy for Ribbon / InsertDialogs / insert-presets / icons */
 export const ribbonStrings = defineStrings({
@@ -35,9 +37,11 @@ export const ribbonStrings = defineStrings({
   pt,
   it,
   pl,
+  cs,
   nl,
   ms,
   he,
   hi,
   'zh-TW': zhTW,
+  vi,
 })

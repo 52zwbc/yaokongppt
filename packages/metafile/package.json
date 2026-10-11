@@ -12,6 +12,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@genoffice/zip-gate": "*"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "^5.9.3"

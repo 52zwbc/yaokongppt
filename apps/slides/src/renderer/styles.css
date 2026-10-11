@@ -9254,7 +9254,7 @@ body.show-curtain::after {
   font-weight: 600;
 }
 
-/* 启动赞赏弹窗：免费说明 + 赞赏码，右上角 X 与底部关闭按钮均可关闭 */
+/* 启动赞赏弹窗：免费说明 + 赞赏码，右上角 X / 关闭仅关本次，“已扫码”永久屏蔽 */
 .donate-modal-mask {
   position: fixed;
   inset: 0;
@@ -9308,6 +9308,7 @@ body.show-curtain::after {
 .donate-modal-actions {
   display: flex;
   justify-content: center;
+  gap: 12px;
 }
 .donate-modal-close {
   min-width: 120px;
@@ -9322,4 +9323,18 @@ body.show-curtain::after {
 }
 .donate-modal-close:hover {
   filter: brightness(0.96);
+}
+.donate-modal-primary {
+  min-width: 150px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #16a34a;
+  color: #fff;
+}
+.donate-modal-primary:hover {
+  filter: brightness(0.95);
 }

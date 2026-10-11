@@ -13,7 +13,7 @@
  */
 import { deflateSync } from 'node:zlib'
 import type { EmuRect, Slide } from './types'
-import { creationIdXml, escapeXmlAttr } from './xml-utils'
+import { creationIdXml, escapeXmlAttr, hasDefaultFor, maxRelationshipIdNumber } from './xml-utils'
 import { relsPathFor } from './zip'
 import { appendRawElements, type OpenedPptx } from './index'
 import { nextCNvPrId } from './insert'
@@ -99,11 +99,14 @@ export function solidPng(w: number, h: number, rgb: [number, number, number]): B
 function ensureDefaultContentType(opened: OpenedPptx, ext: string, mime: string): void {
   const ctPath = '[Content_Types].xml'
   const ct = opened.archive.readText(ctPath)
-  if (ct && !new RegExp(`<Default Extension="${ext}"`).test(ct)) {
+  if (ct && !hasDefaultFor(ct, ext)) {
     const dflt = `<Default Extension="${ext}" ContentType="${mime}"/>`
     opened.archive.entries.set(
       ctPath,
-      Buffer.from(ct.replace('</Types>', `${dflt}</Types>`), 'utf8'),
+      Buffer.from(
+        ct.replace('</Types>', () => `${dflt}</Types>`),
+        'utf8',
+      ),
     )
   }
 }
@@ -130,8 +133,7 @@ function appendRels(
   let xml =
     opened.archive.readText(relsPath) ??
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>'
-  let maxRid = 0
-  for (const m of xml.matchAll(/Id="rId(\d+)"/g)) maxRid = Math.max(maxRid, Number(m[1]))
+  let maxRid = maxRelationshipIdNumber(xml)
   const rids: string[] = []
   for (const rel of rels) {
     const rid = `rId${++maxRid}`
@@ -176,9 +178,10 @@ export function addMedia(
   const mediaPath = newMediaPart(opened, 'media', ext, opts.bytes)
   ensureDefaultContentType(opened, ext, mime)
 
-  // 2) Poster frame part (solid color by default)
+  // 2) Poster frame part (solid color by default; square for audio, whose frame is PowerPoint's 64 pt icon)
   const poster = opts.poster ?? {
-    bytes: solidPng(16, 9, opts.kind === 'video' ? [38, 38, 44] : [240, 240, 244]),
+    bytes:
+      opts.kind === 'video' ? solidPng(16, 9, [38, 38, 44]) : solidPng(16, 16, [240, 240, 244]),
     ext: 'png',
   }
   const posterExt = poster.ext.toLowerCase()

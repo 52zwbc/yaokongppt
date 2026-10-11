@@ -3,7 +3,7 @@
  * Extracted from parse.ts into a shared module: used by both parse (run/fill colors) and
  * placeholder (lstStyle defRPr default colors) to avoid a circular dependency.
  */
-import { type Theme, resolveSchemeColor } from './theme'
+import { type Theme, resolveSchemeColor, sysColorHex } from './theme'
 import { asXmlNode, type XmlNode } from './xml-utils'
 
 /**
@@ -21,16 +21,24 @@ export function resolveColorNode(
   let mods: XmlNode | undefined
   if (n['a:srgbClr']) {
     mods = asXmlNode(n['a:srgbClr'])
-    base = '#' + String(mods['@_val']).toUpperCase()
+    // A missing val must stay unresolved: '#' + String(undefined) is the truthy string
+    // '#UNDEFINED', which hexToRgb then reinterprets as an authored colour (an empty
+    // val yields '#000000'). Unresolvable is what the sibling branches already return.
+    const raw = String(mods['@_val'] ?? '')
+    if (raw) base = '#' + raw.toUpperCase()
   } else if (n['a:schemeClr']) {
     mods = asXmlNode(n['a:schemeClr'])
     base = resolveSchemeColor(String(mods['@_val']), theme, phClr)
   } else if (n['a:sysClr']) {
     mods = asXmlNode(n['a:sysClr'])
-    base = '#' + String(mods['@_lastClr'] ?? '000000').toUpperCase()
+    base = sysColorHex(mods['@_val'], mods['@_lastClr'])
   } else if (n['a:prstClr']) {
     mods = asXmlNode(n['a:prstClr'])
-    base = PRESET_COLORS[String(mods['@_val'])]
+    const raw = String(mods['@_val'] ?? '')
+    base =
+      PRESET_COLORS[raw] ??
+      PRESET_COLORS_LOWER.get(raw.toLowerCase()) ??
+      PRESET_COLORS[raw.charAt(0).toLowerCase() + raw.slice(1)]
   }
   if (!base) return undefined
   return applyColorMods(base, mods)
@@ -229,6 +237,10 @@ const PRESET_COLORS: Record<string, string> = {
   yellow: '#FFFF00',
   yellowGreen: '#9ACD32',
 }
+
+const PRESET_COLORS_LOWER = new Map<string, string>(
+  Object.entries(PRESET_COLORS).map(([k, v]) => [k.toLowerCase(), v]),
+)
 
 /** Apply lumMod/lumOff/tint/shade/satMod/alpha modifiers (percentages, in units of 1/1000%). */
 export function applyColorMods(hex: string, mods: XmlNode | undefined): string {

@@ -8,7 +8,7 @@
 
 - 仓库：https://github.com/52zwbc/yaokongppt
 - 框架：Electron + electron-vite + electron-builder（monorepo，npm workspaces）
-- 主应用：`apps/slides`（包名 `yaokongppt`，当前版本 0.6.1）
+- 主应用：`apps/slides`（包名 `yaokongppt`，当前版本 0.6.2）
 - License：Apache-2.0
 
 ## 功能
@@ -20,6 +20,6 @@
   - 翻页、键鼠遥控（Windows 下经 koffi 调用 `user32.dll`，Linux 下降级为 no-op）
   - 随机点名（名单 `resources/remote-control/names.dll`，实为一行一个名字的文本文件）
   - 常用语信息呼叫：电脑屏幕置顶显示文字，有同名 mp3 则播放一次（`常用语声音/`），无则只显示
-- 启动弹窗：免费说明 + 赞赏码（`donate-qrcode.jpg`），右上角 × 或底部“关闭”可关，屏蔽开关已预留（`src/renderer/donate-suppress.ts`，下个版本实现）
+- 启动弹窗：免费说明 + 赞赏码（`donate-qrcode.jpg`），右上角 × /“关闭”只关本次，“已扫码，不再显示”永久屏蔽（`src/renderer/donate-suppress.ts`，localStorage）
 - 状态栏文案：`请用微信小程序《52中文编程》查看使用帮助和联系作者`
 - 托盘：关闭窗口最小化到托盘，任务栏/托盘使用自带图标

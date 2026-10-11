@@ -1,7 +1,7 @@
 /// The default folder where new/untitled files land on their first (silent)
-/// save and where drafts go. Historically hardcoded to
-/// <Documents>/pptx演示器; now user-configurable via the `defaultSaveDir` key
-/// in userData/app-settings.json.
+/// save and where AI-generated drafts go. Historically hardcoded to
+/// <Documents>/GenOffice; now user-configurable via the `defaultSaveDir` key
+/// in userData/app-settings.json (set from the home screen's account menu).
 /// Every editor main module resolves through here so they all honor the same
 /// setting.
 import { accessSync, constants, mkdirSync, readFileSync } from 'node:fs'
@@ -45,13 +45,13 @@ export function isUsableSaveDir(dir: string): boolean {
  */
 export function resolveDefaultSaveDir(configured: string | null, fallbackDir: string): string {
   if (configured && isUsableSaveDir(configured)) return configured
-  mkdirSync(fallbackDir, { recursive: true })
+  if (!isUsableSaveDir(fallbackDir)) throw new Error(`default save dir not usable: ${fallbackDir}`)
   return fallbackDir
 }
 
 /** convenience for the Electron mains: settings lookup + fallback in one call */
 export function configuredDefaultSaveDir(app: PathProvider): string {
   const settingsPath = join(app.getPath('userData'), 'app-settings.json')
-  const fallback = join(app.getPath('documents'), 'pptx演示器')
+  const fallback = join(app.getPath('documents'), 'GenOffice')
   return resolveDefaultSaveDir(readDefaultSaveDirSetting(settingsPath), fallback)
 }

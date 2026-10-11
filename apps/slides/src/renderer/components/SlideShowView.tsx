@@ -6,16 +6,30 @@
  * - Moving forward plays the target page's transition effect (CSS approximations of fade/push/wipe/split/circle/random)
  * - In-page shape animations (Animations tab): moving forward plays animations step by step, turning the page only when done;
  *   going back/jumping shows the all-animations-finished state
- * - →/space/enter/PgDn/click next step/page; ←/PgUp/right-click previous page; Home/End first/last page;
- *   Esc exits; advancing past the last page shows the "end of show" black screen
+ * - →/space/enter/PgDn/click next step/page; ←/PgUp previous page; Home/End first/last page;
+ *   B/. black screen, W/, white screen (any key or click restores); digits + Enter jump to that
+ *   slide number; Esc exits; advancing past the last page shows the "end of show" black screen
+ * - Right-click opens PowerPoint's show menu (next/previous/last viewed/see all slides/screen/end)
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RenderNode, RenderSlide, ShapeRenderNode } from '@genoffice/pptx-render'
 import type { AnimationItem, LinkTargetOp, ShapeKey, TransitionKind } from '../../shared/ipc'
 import { AnimatedSlideStage, useAnimPlayer } from './AnimatedSlide'
+import { ShowMediaLayer } from './ShowMediaLayer'
 import { useI18n } from '../i18n/locale'
 import { MorphStage } from './MorphStage'
-import { InkLayer, type InkStroke } from './ShowInk'
+import { ContextMenu } from './ContextMenu'
+import { SlideThumb } from '../SlideThumb'
+import {
+  gotoPosition,
+  INITIAL_SHOW_KEYS,
+  pushVisited,
+  reduceShowKey,
+  toggleScreen,
+  type ShowKeyState,
+  type ShowScreen,
+} from '../show-keys'
+import { buildShowMenu } from '../show-menu'
 import {
   computePlayOrder,
   finishRehearse,
@@ -39,6 +53,7 @@ const ANIMATED = [
 ] as const
 
 const IS_MAC = navigator.platform.toLowerCase().includes('mac')
+const GRID_THUMB_W = 200
 
 export function SlideShowView({
   slides,
@@ -93,39 +108,21 @@ export function SlideShowView({
   const [morph, setMorph] = useState<{ fromIdx: number; toIdx: number; nonce: number } | null>(null)
   /** How the current page was entered: forward = initial state playing step by step, others = all-finished state */
   const navModeRef = useRef<'fresh' | 'all'>('fresh')
-
-  // ── Show ink (pen annotation) ───────────────────────────────────────────
-  // Per-page strokes keyed by original slide index; they survive a page turn
-  // (hidden until you return to that page) and the pen mode exits on turn.
-  const PEN_COLORS = ['#e53935', '#43a047', '#1e88e5', '#fdd835', '#ffffff', '#212121']
-  const [penOn, setPenOn] = useState(false)
-  const [penColor, setPenColor] = useState('#e53935') // default red
-  /** 画笔模式：'fg'=前景（在幻灯片上标注）；'bg'=背景（点颜色把整屏设为纯色，白板/黑板）。默认前景。 */
-  const [penMode, setPenMode] = useState<'fg' | 'bg'>('fg')
-  /** 白板背景色（null=无背景，显示幻灯片内容）。翻页/返回时清空。 */
-  const [bgColor, setBgColor] = useState<string | null>(null)
-  const [curStrokes, setCurStrokes] = useState<InkStroke[]>([])
-  const curStrokesRef = useRef<InkStroke[]>([])
-  const strokesByPageRef = useRef<Record<number, InkStroke[]>>({})
-  const drawingRef = useRef(false)
-  const frameRef = useRef<HTMLDivElement>(null)
-  const lastIdxRef = useRef<number>(order[pos] ?? -1)
-  useEffect(() => {
-    curStrokesRef.current = curStrokes
-  }, [curStrokes])
-  // On page turn: stash the leaving page's strokes, load the entering page's,
-  // and drop out of pen mode (strokes reappear when you come back).
-  // 背景色与前景/背景模式也一并清空：翻页后背景和笔触都消失；返回时只恢复笔触、不恢复背景。
-  useEffect(() => {
-    const leaving = lastIdxRef.current
-    if (leaving >= 0) strokesByPageRef.current[leaving] = curStrokesRef.current
-    const entering = order[pos] ?? -1
-    setCurStrokes(entering >= 0 ? strokesByPageRef.current[entering] ?? [] : [])
-    setPenOn(false)
-    setPenMode('fg')
-    setBgColor(null)
-    lastIdxRef.current = entering
-  }, [pos]) // eslint-disable-line react-hooks/exhaustive-deps
+  /** Key state (blackout + typed digits); the screen part mirrored into state for rendering */
+  const showKeysRef = useRef<ShowKeyState>(INITIAL_SHOW_KEYS)
+  const [blank, setBlank] = useState<ShowScreen>('none')
+  const setKeys = useCallback((k: ShowKeyState) => {
+    showKeysRef.current = k
+    setBlank(k.screen)
+  }, [])
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const menuRef = useRef(menu)
+  menuRef.current = menu
+  const [grid, setGrid] = useState(false)
+  const gridRef = useRef(grid)
+  gridRef.current = grid
+  /** Left button went down outside the open menu: that click only closes the menu, it must not advance */
+  const menuClickRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -275,10 +272,13 @@ export function SlideShowView({
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  /** Play-order positions left behind by navigation ("Last Viewed" walks it back) */
+  const visitedRef = useRef<number[]>([])
   const goTo = useCallback(
-    (nextPos: number, animate: boolean) => {
+    (nextPos: number, animate: boolean, fromHistory = false) => {
       const target = order[nextPos]
       if (target == null) return
+      if (nextPos !== pos && !fromHistory) visitedRef.current = pushVisited(visitedRef.current, pos)
       navModeRef.current = animate ? 'fresh' : 'all'
       const current = order[pos]
       let kind: TransitionKind = 'none'
@@ -300,6 +300,13 @@ export function SlideShowView({
     },
     [order, pos],
   )
+
+  const lastViewed = useCallback(() => {
+    const p = visitedRef.current.pop()
+    if (p == null) return
+    setEnded(false)
+    goTo(p, false, true)
+  }, [goTo])
 
   const next = useCallback(() => {
     if (ended) {
@@ -333,10 +340,38 @@ export function SlideShowView({
         }
         return
       }
+      if (target.kind === 'action') {
+        const jump = (p: number | null) => {
+          if (p == null || p < 0 || p >= order.length) return
+          setEnded(false)
+          goTo(p, true)
+        }
+        // Page moves only, like PowerPoint: no animation stepping, nothing past either end
+        switch (target.action) {
+          case 'nextslide':
+            jump(pos + 1)
+            return
+          case 'previousslide':
+            jump(pos - 1)
+            return
+          case 'firstslide':
+            jump(0)
+            return
+          case 'lastslide':
+            jump(order.length - 1)
+            return
+          case 'lastslideviewed':
+            lastViewed()
+            return
+          case 'endshow':
+            exitRef.current()
+            return
+        }
+      }
       // Electron routes window.open to the system browser (setWindowOpenHandler denies in-app windows)
-      window.open(target.kind === 'url' ? target.url : '', '_blank', 'noreferrer')
+      window.open(target.url, '_blank', 'noreferrer')
     },
-    [order, goTo],
+    [order, goTo, pos, lastViewed],
   )
   /** Click/hover position → slide-model px → topmost linked element's target (null = no link there) */
   const linkAt = useCallback(
@@ -358,92 +393,64 @@ export function SlideShowView({
     [order, pos, slide],
   )
 
-  // ── Pen drawing (normalized 0..1 coords over the slide frame) ──────────────
-  const normPoint = useCallback((e: React.PointerEvent): { x: number; y: number } | null => {
-    const r = frameRef.current?.getBoundingClientRect()
-    if (!r || r.width === 0 || r.height === 0) return null
-    return {
-      x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
-      y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
-    }
-  }, [])
-
-  const onInkDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (!penOn) return
-      const p = normPoint(e)
-      if (!p) return
-      e.currentTarget.setPointerCapture(e.pointerId)
-      drawingRef.current = true
-      setCurStrokes((ss) => [...ss, { color: penColor, points: [p.x, p.y] }])
-    },
-    [penOn, penColor, normPoint],
-  )
-
-  const onInkMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!penOn || !drawingRef.current) return
-      const p = normPoint(e)
-      if (!p) return
-      setCurStrokes((ss) => {
-        const last = ss[ss.length - 1]
-        if (!last) return ss
-        return [...ss.slice(0, -1), { ...last, points: [...last.points, p.x, p.y] }]
-      })
-    },
-    [penOn, normPoint],
-  )
-
-  const onInkUp = useCallback(() => {
-    drawingRef.current = false
-  }, [])
-
-  const undoInk = useCallback(() => setCurStrokes((ss) => ss.slice(0, -1)), [])
-  const clearInk = useCallback(() => setCurStrokes([]), [])
-  /** 点颜色：前景模式设画笔色；背景模式把整屏设为该纯色（白板/黑板）。 */
-  const onColorPick = useCallback(
-    (c: string) => {
-      if (penMode === 'bg') setBgColor(c)
-      else setPenColor(c)
-    },
-    [penMode],
-  )
-
-  // Keyboard navigation (capture beats the editor's generic shortcuts)
+  // Keyboard navigation (capture beats the editor's generic shortcuts). The menu owns
+  // Escape while open; the slide grid closes on Escape instead of ending the show.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        exitRef.current()
-      } else if (
-        e.key === 'ArrowRight' ||
-        e.key === 'ArrowDown' ||
-        e.key === ' ' ||
-        e.key === 'Enter' ||
-        e.key === 'PageDown'
-      ) {
-        e.preventDefault()
-        next()
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
-        e.preventDefault()
-        prev()
-      } else if (e.key === 'Home') {
-        e.preventDefault()
-        setEnded(false)
-        goTo(0, false)
-      } else if (e.key === 'End') {
-        e.preventDefault()
-        setEnded(false)
-        goTo(order.length - 1, false)
+      if (menuRef.current) return
+      if (gridRef.current) {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          setGrid(false)
+        }
+        return
+      }
+      const r = reduceShowKey(showKeysRef.current, e.key)
+      if (!r) return
+      e.preventDefault()
+      setKeys(ended ? { ...r.state, screen: 'none' } : r.state)
+      switch (r.action.type) {
+        case 'exit':
+          exitRef.current()
+          return
+        case 'next':
+          next()
+          return
+        case 'prev':
+          prev()
+          return
+        case 'first':
+          setEnded(false)
+          goTo(0, false)
+          return
+        case 'last':
+          setEnded(false)
+          goTo(order.length - 1, false)
+          return
+        case 'goto': {
+          const p = gotoPosition(r.action.slideNumber, order)
+          if (p == null) return
+          setEnded(false)
+          goTo(p, false)
+          return
+        }
       }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [next, prev, goTo, order.length])
+  }, [next, prev, goTo, order, ended, setKeys])
+
+  const onRootClick = (e: React.MouseEvent) => {
+    if ((e.target as Element).closest('.ctx-menu, .ss-grid')) return
+    if (showKeysRef.current.screen !== 'none') {
+      setKeys(INITIAL_SHOW_KEYS)
+      return
+    }
+    next()
+  }
 
   if (!slide) return null
   const fitW = Math.round(Math.min(size.w, (size.h * slide.widthPx) / slide.heightPx))
-  const fitH = Math.round((fitW * slide.heightPx) / slide.widthPx)
   // Rehearsal timer bar values: current page dwell (including earlier revisit accumulation) + total elapsed
   const rehearse = rehearseRef.current
   const sinceEntered = rehearse ? Date.now() - rehearse.enteredAt : 0
@@ -454,23 +461,54 @@ export function SlideShowView({
     ? rehearse.perPageMs.reduce((a, b) => a + b, 0) + sinceEntered
     : 0
 
+  const menuItems = menu
+    ? buildShowMenu(
+        t,
+        {
+          pos,
+          count: order.length,
+          ended,
+          pending: player.pending,
+          hasLastViewed: visitedRef.current.length > 0,
+          screen: blank,
+        },
+        {
+          next,
+          prev,
+          lastViewed,
+          seeAll: () => setGrid(true),
+          setScreen: (sc) => {
+            if (!ended) setKeys(toggleScreen(showKeysRef.current, sc))
+          },
+          end: () => exitRef.current(),
+        },
+      )
+    : null
+
   return (
     <div
       className="slideshow"
+      onClick={onRootClick}
+      onMouseDownCapture={(e) => {
+        menuClickRef.current =
+          menu != null && e.button === 0 && !(e.target as Element).closest('.ctx-menu')
+      }}
+      onClickCapture={(e) => {
+        if (!menuClickRef.current) return
+        menuClickRef.current = false
+        e.stopPropagation()
+      }}
       onContextMenu={(e) => {
         e.preventDefault()
-        prev()
+        if (!covered || grid) return
+        setMenu({ x: e.clientX, y: e.clientY })
       }}
     >
-      {!covered ? null : (
+      {!covered ? null : ended ? (
+        <div className="ss-end">{t('paneShowEndedClick')}</div>
+      ) : (
         <>
-          {/* 白板/黑板背景层：整屏纯色，盖在幻灯片之下、工具栏与笔触之上之下。背景色翻页/返回时清空。 */}
-          {bgColor && <div className="ss-whiteboard" style={{ background: bgColor }} />}
-          {ended ? (
-            <div className="ss-end" onClick={() => exitRef.current()}>
-              {t('paneShowEndedClick')}
-            </div>
-          ) : morph && slides[morph.fromIdx] && slides[morph.toIdx] ? (
+          {morph && slides[morph.fromIdx] && slides[morph.toIdx] ? (
             <div key={`morph-${morph.nonce}`} className="ss-frame">
               <MorphStage
                 from={slides[morph.fromIdx]!}
@@ -488,42 +526,32 @@ export function SlideShowView({
               className={`ss-frame${anim.kind !== 'none' ? ` ss-anim-${anim.kind}` : ''}`}
             >
               <div
-                ref={frameRef}
-                style={{ position: 'relative', width: fitW, height: fitH, margin: '0 auto' }}
+                style={{ position: 'relative', width: fitW, margin: '0 auto' }}
                 onClick={(e) => {
-                  if (penOn) return
                   const target = linkAt(e)
-                  if (!target) return // No link here: nothing advances (nav buttons only)
+                  if (!target) return // Bubbles to the root onClick → next page
                   e.stopPropagation()
                   followLink(target)
                 }}
                 onMouseMove={(e) => {
-                  if (penOn) return
                   e.currentTarget.style.cursor = linkAt(e) ? 'pointer' : ''
                 }}
               >
-                {/* 白板模式下隐藏幻灯片内容，只留纯色背景 + 笔触；返回普通模式再显示 */}
-                {!bgColor && (
-                  <AnimatedSlideStage
-                    slide={slide}
-                    images={images}
-                    width={fitW}
-                    states={player.states}
-                  />
-                )}
-                {!bgColor && (
-                  <ShowMediaLayer slide={slide} slideIndex={order[pos]!} width={fitW} />
-                )}
-                <InkLayer strokes={curStrokes} laser={null} width={fitW} height={fitH} />
-                {penOn && (
-                  <div
-                    className="ss-ink-capture"
-                    onPointerDown={onInkDown}
-                    onPointerMove={onInkMove}
-                    onPointerUp={onInkUp}
-                    onPointerLeave={onInkUp}
-                  />
-                )}
+                <AnimatedSlideStage
+                  slide={slide}
+                  images={images}
+                  width={fitW}
+                  states={player.states}
+                />
+                <ShowMediaLayer
+                  key={order[pos]!}
+                  slide={slide}
+                  slideIndex={order[pos]!}
+                  width={fitW}
+                  commands={player.mediaCmds}
+                  epoch={player.epoch}
+                  mediaBase={player.mediaBase}
+                />
               </div>
             </div>
           )}
@@ -538,102 +566,36 @@ export function SlideShowView({
           <div className="ss-counter">
             {pos + 1} / {order.length}
           </div>
-          <div className="ss-toolbar">
-            {penOn && (
-              <>
-                {/* 前景/背景切换：默认前景（在幻灯片上标注）；切到背景后点颜色把整屏设为纯色 */}
-                <button
-                  type="button"
-                  className={`ss-tool ss-penmode${penMode === 'bg' ? ' ss-mode-bg' : ''}`}
-                  onClick={() => setPenMode((m) => (m === 'fg' ? 'bg' : 'fg'))}
-                  data-tip={penMode === 'fg' ? '当前：前景（点颜色设画笔色）' : '当前：背景（点颜色设整屏纯色）'}
-                  aria-label="前景/背景切换"
-                >
-                  {penMode === 'fg' ? '前景' : '背景'}
-                </button>
-                {PEN_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`ss-color${penMode === 'bg' ? ' ss-bg-on' : ''}${penMode !== 'bg' && penColor === c ? ' ss-color-on' : ''}`}
-                    style={{ background: c }}
-                    onClick={() => onColorPick(c)}
-                    data-tip={penMode === 'bg' ? '把整屏背景设为该颜色' : '选择画笔颜色'}
-                    aria-label={penMode === 'bg' ? '设置背景颜色' : '选择画笔颜色'}
-                  />
-                ))}
-                <button
-                  type="button"
-                  className="ss-tool"
-                  onClick={undoInk}
-                  data-tip="撤销上一笔"
-                  aria-label="撤销上一笔"
-                >
-                  ↶
-                </button>
-                <button
-                  type="button"
-                  className="ss-tool"
-                  onClick={clearInk}
-                  data-tip="清空白页笔触"
-                  aria-label="清空白页笔触"
-                >
-                  ⌫
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              className="ss-tool"
-              onClick={prev}
-              data-tip="上一页"
-              aria-label="上一页"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              className="ss-tool"
-              onClick={next}
-              data-tip="下一页"
-              aria-label="下一页"
-            >
-              ›
-            </button>
-            <button
-              type="button"
-              className={`ss-tool ss-rollcall`}
-              onClick={() => window.slidesApi.rollCallPick()}
-              data-tip="随机点名"
-              aria-label="随机点名"
-            >
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff" aria-hidden="true">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className={`ss-tool${penOn ? ' ss-pen-on' : ''}`}
-              onClick={() => setPenOn((v) => !v)}
-              data-tip="画笔标注"
-              aria-label="画笔标注"
-            >
-              ✎
-            </button>
-            <button
-              type="button"
-              className="ss-tool ss-exit"
-              onClick={() => exitRef.current()}
-              data-tip="退出放映"
-              aria-label="退出放映"
-            >
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-          </div>
+          {blank !== 'none' && <div className={blank === 'black' ? 'ss-black' : 'ss-white'} />}
         </>
+      )}
+      {grid && (
+        <div
+          className="ss-grid"
+          onClick={(e) => {
+            e.stopPropagation()
+            setGrid(false)
+          }}
+        >
+          {order.map((idx, p) => (
+            <button
+              key={idx}
+              className={`ss-grid-item${p === pos ? ' ss-grid-cur' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setGrid(false)
+                setEnded(false)
+                goTo(p, false)
+              }}
+            >
+              <SlideThumb slide={slides[idx]!} images={images} width={GRID_THUMB_W} />
+              <span className="ss-grid-num">{idx + 1}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {menu && menuItems && (
+        <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />
       )}
     </div>
   )
@@ -680,107 +642,4 @@ function hitLink(
     if (target) return target
   }
   return null
-}
-
-/**
- * Audio/video layer during the show: DOM players stacked over video/audio nodes (click to
- * play/pause, auto-stop on page turn). In the editor media only has poster frames; a show must
- * be able to play, or decks with video are crippled.
- */
-function ShowMediaLayer({
-  slide,
-  slideIndex,
-  width,
-}: {
-  slide: RenderSlide
-  slideIndex: number
-  width: number
-}) {
-  const k = width / slide.widthPx
-  const nodes = slide.nodes.filter(
-    (n): n is import('@genoffice/pptx-render').PictureRenderNode =>
-      n.type === 'picture' && !!(n as import('@genoffice/pptx-render').PictureRenderNode).media,
-  )
-  const [urls, setUrls] = useState<Record<string, { kind: 'video' | 'audio'; dataUrl: string }>>({})
-  const [playing, setPlaying] = useState<Record<string, boolean>>({})
-  useEffect(() => {
-    let cancelled = false
-    setUrls({})
-    setPlaying({})
-    for (const n of nodes) {
-      void window.slidesApi.getMediaData(slideIndex, n.sourceId).then((d) => {
-        if (!cancelled && d) setUrls((u) => ({ ...u, [n.sourceId]: d }))
-      })
-    }
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slideIndex])
-  if (!nodes.length) return null
-  return (
-    <>
-      {nodes.map((n) => {
-        const media = urls[n.sourceId]
-        if (!media) return null
-        const style: React.CSSProperties = {
-          position: 'absolute',
-          left: n.box.x * k,
-          top: n.box.y * k,
-          width: n.box.w * k,
-          height: n.box.h * k,
-          cursor: 'pointer',
-        }
-        const isPlaying = !!playing[n.sourceId]
-        const toggle = (el: HTMLMediaElement | null) => {
-          if (!el) return
-          if (el.paused) void el.play()
-          else el.pause()
-        }
-        if (media.kind === 'video') {
-          return (
-            <video
-              key={n.sourceId}
-              src={media.dataUrl}
-              style={style}
-              playsInline
-              onClick={(e) => {
-                e.stopPropagation()
-                toggle(e.currentTarget)
-              }}
-              onPlay={() => setPlaying((p) => ({ ...p, [n.sourceId]: true }))}
-              onPause={() => setPlaying((p) => ({ ...p, [n.sourceId]: false }))}
-            />
-          )
-        }
-        // Audio: the poster frame is drawn by the canvas; overlay a transparent click layer + play badge
-        return (
-          <div
-            key={n.sourceId}
-            style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onClick={(e) => {
-              e.stopPropagation()
-              toggle(document.getElementById(`ss-audio-${n.sourceId}`) as HTMLMediaElement | null)
-            }}
-          >
-            <audio
-              id={`ss-audio-${n.sourceId}`}
-              src={media.dataUrl}
-              onPlay={() => setPlaying((p) => ({ ...p, [n.sourceId]: true }))}
-              onPause={() => setPlaying((p) => ({ ...p, [n.sourceId]: false }))}
-            />
-            <span
-              style={{
-                fontSize: Math.min(n.box.w, n.box.h) * k * 0.4,
-                lineHeight: 1,
-                opacity: 0.85,
-              }}
-            >
-              {isPlaying ? '⏸' : '▶'}
-            </span>
-          </div>
-        )
-      })}
-    </>
-  )
 }

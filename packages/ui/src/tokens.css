@@ -1,4 +1,4 @@
-/* pptx演示器 design tokens — the single source of truth for UI chrome colors.
+/* GenOffice design tokens — the single source of truth for UI chrome colors.
  * Theme switching: light defaults in :root, [data-theme='dark'] overrides,
  * prefers-color-scheme fallback for system mode (no data-theme attribute).
  * Per-app accents (--accent / --accent-dark / --accent-soft) live in each
@@ -19,7 +19,7 @@
   --text-primary: #232425;
   --text-secondary: #606366;
   --text-tertiary: #909499;
-  --text-muted: #878e96;
+  --text-muted: #616870;
   --text-dim: #605e5c;
   --hover: #f5f5f5;
   --pressed: #edebe9;
@@ -32,6 +32,11 @@
   --icon-muted: #b9bfc7;
   --danger: #d13438;
   --danger-bg: #fdf3f3;
+  /* Word's changed-line bar (Simple Markup): fixed red, tuned per theme */
+  --docs-revision-bar: #c00000;
+  --search-hit-bg: #ffe28a;
+  --search-hit-active-bg: #ff9632;
+  --search-hit-active-ink: #fff;
   --danger-border: #f0c8c9;
   --success: #107c41;
   --success-bg: #eaf7ef;
@@ -90,7 +95,7 @@
   --text-primary: #e4e4e4;
   --text-secondary: #a0a0a0;
   --text-tertiary: #a0a0a0;
-  --text-muted: #8a8a8a;
+  --text-muted: #949494;
   --text-dim: #a0a0a0;
   --hover: #333;
   --pressed: #3c3c3c;
@@ -103,6 +108,10 @@
   --icon-muted: #666;
   --danger: #d13438;
   --danger-bg: #3a2020;
+  --docs-revision-bar: #ff6b6b;
+  --search-hit-bg: #745a1e;
+  --search-hit-active-bg: #d4781f;
+  --search-hit-active-ink: #1e1e1e;
   --danger-border: #5a3030;
   --success: #52c082;
   --success-bg: #20342a;
@@ -145,7 +154,7 @@
     --text-primary: #e4e4e4;
     --text-secondary: #a0a0a0;
     --text-tertiary: #a0a0a0;
-    --text-muted: #8a8a8a;
+    --text-muted: #949494;
     --text-dim: #a0a0a0;
     --hover: #333;
     --pressed: #3c3c3c;
@@ -158,6 +167,10 @@
     --icon-muted: #666;
     --danger: #d13438;
     --danger-bg: #3a2020;
+    --docs-revision-bar: #ff6b6b;
+    --search-hit-bg: #745a1e;
+    --search-hit-active-bg: #d4781f;
+    --search-hit-active-ink: #1e1e1e;
     --danger-border: #5a3030;
     --success: #52c082;
     --success-bg: #20342a;

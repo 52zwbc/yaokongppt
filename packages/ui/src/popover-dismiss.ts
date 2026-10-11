@@ -20,7 +20,7 @@ type ChromePressedApi = { onChromePressed?: (handler: () => void) => () => void 
 
 /** Each app's preload exposes the app:chrome-pressed subscription under its
  * own namespace; probe the known ones so callers never need to care. */
-function subscribeChromePressed(handler: () => void): (() => void) | undefined {
+export function subscribeChromePressed(handler: () => void): (() => void) | undefined {
   const w = window as unknown as Record<string, ChromePressedApi | undefined>
   for (const name of [
     'slidesApi',
@@ -75,7 +75,10 @@ export function installPopoverDismiss(
   window.addEventListener('blur', onBlur)
   const offChrome = subscribeChromePressed(close)
   bumpOpenPopovers(1)
+  let tornDown = false
   return () => {
+    if (tornDown) return
+    tornDown = true
     if (inside) window.removeEventListener('pointerdown', onPress, true)
     else window.removeEventListener('mousedown', onPress)
     window.removeEventListener('blur', onBlur)

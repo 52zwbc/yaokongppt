@@ -6,7 +6,9 @@
 import React from 'react'
 import { Rect, Text, Line, Circle, Arc, Path } from 'react-konva'
 import type { ChartRenderNode } from '@genoffice/pptx-render'
-import { fillToKonva, smoothTension } from './konva-adapter'
+
+const CHART_FONT = 'Calibri, Carlito, Arial, sans-serif'
+import { displayFontFamily, fillToKonva, smoothTension } from './konva-adapter'
 
 export function ChartBody({
   chart,
@@ -58,9 +60,10 @@ export function ChartBody({
           outerRadius={wd.outerR}
           angle={wd.sweepDeg}
           rotation={wd.startDeg}
-          fill={wd.color}
-          stroke="#ffffff"
-          strokeWidth={1}
+          fill={wd.noFill ? undefined : wd.color}
+          {...(wd.strokeWidthPx === 0
+            ? {}
+            : { stroke: wd.stroke ?? '#ffffff', strokeWidth: wd.strokeWidthPx ?? 1 })}
         />
       ))}
       {chart.gridLines.map((g, i) => (
@@ -86,11 +89,20 @@ export function ChartBody({
           data={p.d}
           y={p.dy ?? 0}
           fill={p.fill}
-          {...(p.stroke ? { stroke: p.stroke, strokeWidth: 1 } : {})}
+          {...(p.stroke ? { stroke: p.stroke, strokeWidth: p.strokeWidthPx ?? 1 } : {})}
         />
       ))}
       {chart.bars.map((b, i) => (
-        <Rect key={`b${i}`} x={b.x} y={b.y} width={b.w} height={b.h} fill={b.color} />
+        <Rect
+          key={`b${i}`}
+          x={b.x}
+          y={b.y}
+          width={b.w}
+          height={b.h}
+          {...(b.fill
+            ? fillToKonva(b.fill, b.w, b.h, images, { x: chart.box.x + b.x, y: chart.box.y + b.y })
+            : { fill: b.color })}
+        />
       ))}
       {chart.polylines.map((p, i) => (
         <Line
@@ -120,6 +132,20 @@ export function ChartBody({
           cornerRadius={1}
         />
       ))}
+      {chart.labels.map(
+        (l, i) =>
+          (l.fill || l.stroke) && (
+            <Rect
+              key={`lb${i}`}
+              x={l.x - l.fontSizePx * 0.3}
+              y={l.y - l.fontSizePx * 0.1}
+              width={(l.w ?? 0) + l.fontSizePx * 0.6}
+              height={l.fontSizePx * 1.35}
+              {...(l.fill ? { fill: l.fill } : {})}
+              {...(l.stroke ? { stroke: l.stroke, strokeWidth: 1 } : {})}
+            />
+          ),
+      )}
       {chart.labels.map((l, i) => (
         <Text
           key={`t${i}`}
@@ -127,7 +153,8 @@ export function ChartBody({
           y={l.y}
           text={l.text}
           fontSize={l.fontSizePx}
-          fontFamily="Calibri, Carlito, Arial, sans-serif"
+          direction="ltr"
+          fontFamily={l.fontFamily ? displayFontFamily(l.fontFamily) : CHART_FONT}
           fill={l.color}
           fontStyle={[l.italic && 'italic', l.bold && 'bold'].filter(Boolean).join(' ') || 'normal'}
           {...(l.rotationDeg ? { rotation: l.rotationDeg } : {})}

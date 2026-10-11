@@ -4,6 +4,11 @@ import type { RenderNode } from '@genoffice/pptx-render'
 export type ContextElementType =
   'table' | 'chart' | 'picture' | 'shape' | 'textShape' | 'mixed' | null
 export type ContextTab = 'tableDesign' | 'chartDesign' | 'pictureFormat' | 'shapeFormat'
+/** Canvas request to activate a contextual tab (seq distinguishes repeated requests for the same tab) */
+export interface ContextTabRequest {
+  tab: ContextTab
+  seq: number
+}
 
 function nodeHasVisibleText(node: RenderNode): boolean {
   if (node.type === 'text' || node.type === 'shape') {
@@ -29,4 +34,19 @@ export function contextTabForElement(type: ContextElementType): ContextTab | nul
   if (type === 'picture' || type === 'mixed') return 'pictureFormat'
   if (type === 'shape' || type === 'textShape') return 'shapeFormat'
   return null
+}
+
+/**
+ * Tab the ribbon jumps to on selection. PowerPoint only reveals Shape Format for
+ * shapes and text boxes (Home stays active so text formatting is one click
+ * away); pictures/tables/charts still switch to their dedicated tools.
+ */
+export function autoContextTabForElement(type: ContextElementType): ContextTab | null {
+  const tab = contextTabForElement(type)
+  return tab === 'shapeFormat' ? null : tab
+}
+
+/** Tab a double-click on a non-text object jumps to (PowerPoint opens the object's tools) */
+export function contextualTabFor(node: RenderNode): ContextTab | null {
+  return contextTabForElement(contextElementTypeForNode(node))
 }

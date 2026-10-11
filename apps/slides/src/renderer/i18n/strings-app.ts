@@ -13,11 +13,13 @@ import { ar } from './app/ar'
 import { pt } from './app/pt'
 import { it } from './app/it'
 import { pl } from './app/pl'
+import { cs } from './app/cs'
 import { nl } from './app/nl'
 import { ms } from './app/ms'
 import { he } from './app/he'
 import { hi } from './app/hi'
 import { zhTW } from './app/zh-TW'
+import { vi } from './app/vi'
 
 /** Copy for App.tsx / canvas and edit overlays / renderer root-level modules */
 export const appStrings = defineStrings({
@@ -35,9 +37,11 @@ export const appStrings = defineStrings({
   pt,
   it,
   pl,
+  cs,
   nl,
   ms,
   he,
   hi,
   'zh-TW': zhTW,
+  vi,
 })

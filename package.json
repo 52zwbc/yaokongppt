@@ -13,8 +13,8 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "npm run typecheck -w @genoffice/pptx-engine && npm run typecheck -w @genoffice/pptx-render && npm run typecheck -w @genoffice/metafile && npm run typecheck -w @genoffice/ui && npm run typecheck -w @genoffice/i18n && npm run typecheck -w @genoffice/project-store && npm run typecheck -w @genoffice/electron-utils && npm run typecheck -w yaokongppt",
-    "test": "npm run test -w @genoffice/pptx-engine && npm run test -w @genoffice/pptx-render && npm run test -w @genoffice/i18n && npm run test -w @genoffice/project-store && npm run test -w @genoffice/electron-utils && npm run test -w yaokongppt",
+    "typecheck": "npm run typecheck -w @genoffice/zip-gate && npm run typecheck -w @genoffice/agent-core && npm run typecheck -w @genoffice/ai-provider && npm run typecheck -w @genoffice/pptx-engine && npm run typecheck -w @genoffice/pptx-render && npm run typecheck -w @genoffice/metafile && npm run typecheck -w @genoffice/ui && npm run typecheck -w @genoffice/i18n && npm run typecheck -w @genoffice/project-store && npm run typecheck -w @genoffice/electron-utils && npm run typecheck -w yaokongppt",
+    "test": "npm run test -w @genoffice/zip-gate && npm run test -w @genoffice/agent-core && npm run test -w @genoffice/ai-provider && npm run test -w @genoffice/pptx-engine && npm run test -w @genoffice/pptx-render && npm run test -w @genoffice/ui && npm run test -w @genoffice/i18n && npm run test -w @genoffice/project-store && npm run test -w @genoffice/electron-utils && npm run test -w yaokongppt",
     "dev": "npm run dev -w yaokongppt",
     "build": "npm run build -w yaokongppt",
     "dist:win": "npm run build -w yaokongppt && npm run dist:win -w yaokongppt",

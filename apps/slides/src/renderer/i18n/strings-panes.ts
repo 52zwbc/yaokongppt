@@ -13,11 +13,13 @@ import { ar } from './panes/ar'
 import { pt } from './panes/pt'
 import { it } from './panes/it'
 import { pl } from './panes/pl'
+import { cs } from './panes/cs'
 import { nl } from './panes/nl'
 import { ms } from './panes/ms'
 import { he } from './panes/he'
 import { hi } from './panes/hi'
 import { zhTW } from './panes/zh-TW'
+import { vi } from './panes/vi'
 
 /** Copy for the panes/show views (animation, presenter, slide show, comments, format, ...) */
 export const paneStrings = defineStrings({
@@ -35,9 +37,11 @@ export const paneStrings = defineStrings({
   pt,
   it,
   pl,
+  cs,
   nl,
   ms,
   he,
   hi,
   'zh-TW': zhTW,
+  vi,
 })

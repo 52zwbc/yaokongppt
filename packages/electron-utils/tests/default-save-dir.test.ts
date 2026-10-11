@@ -53,7 +53,7 @@ describe('resolveDefaultSaveDir', () => {
   })
 
   it('creates and returns the fallback when nothing is configured', () => {
-    const fallback = join(root, 'Documents', 'pptx演示器')
+    const fallback = join(root, 'Documents', 'GenOffice')
     expect(resolveDefaultSaveDir(null, fallback)).toBe(fallback)
     expect(existsSync(fallback)).toBe(true)
   })
@@ -68,6 +68,12 @@ describe('resolveDefaultSaveDir', () => {
     } finally {
       chmodSync(readOnly, 0o700)
     }
+  })
+
+  it('throws a descriptive error when the fallback itself is unusable', () => {
+    const blocker = join(root, 'blocker')
+    writeFileSync(blocker, 'x')
+    expect(() => resolveDefaultSaveDir(null, blocker)).toThrow(/default save dir not usable/)
   })
 })
 
@@ -84,14 +90,14 @@ describe('configuredDefaultSaveDir', () => {
     expect(configuredDefaultSaveDir(app)).toBe(custom)
   })
 
-  it('falls back to <Documents>/pptx演示器 without a setting', () => {
+  it('falls back to <Documents>/GenOffice without a setting', () => {
     const userData = join(root, 'userData')
     const documents = join(root, 'Documents')
     mkdirSync(userData, { recursive: true })
     const app = {
       getPath: (name: 'userData' | 'documents') => (name === 'userData' ? userData : documents),
     }
-    expect(configuredDefaultSaveDir(app)).toBe(join(documents, 'pptx演示器'))
-    expect(existsSync(join(documents, 'pptx演示器'))).toBe(true)
+    expect(configuredDefaultSaveDir(app)).toBe(join(documents, 'GenOffice'))
+    expect(existsSync(join(documents, 'GenOffice'))).toBe(true)
   })
 })

@@ -105,7 +105,7 @@ import * as styleActions from './style-actions'
 import { handleGlobalKeydown } from './keyboard-actions'
 import { buildCtxItems } from './context-menu-items'
 import donateQr from './assets/donate-qrcode.jpg'
-import { isDonateModalSuppressed } from './donate-suppress'
+import { isDonateModalSuppressed, setDonateModalSuppressed } from './donate-suppress'
 
 const _IS_MAC = navigator.platform.toLowerCase().includes('mac')
 
@@ -1598,7 +1598,7 @@ export function App() {
   const [remoteControl, setRemoteControl] = useState<RemoteControlInfo | null>(null)
   const [remoteControlModal, setRemoteControlModal] = useState(false)
   const [rcSelected, setRcSelected] = useState(0)
-  // 启动赞赏弹窗：每次启动显示一次；屏蔽标记读写见 donate-suppress.ts（下个版本启用）
+  // 启动赞赏弹窗：未屏蔽时每次启动显示一次；“已扫码”按钮写屏蔽标记（见 donate-suppress.ts）
   const [donateOpen, setDonateOpen] = useState(() => !isDonateModalSuppressed())
   // 防盗版：验证改由 Web 服务端（remote-control.ts）拦截；本状态仅预留给 liteppt:// 回跳提示
   const [licenseBanner, setLicenseBanner] = useState<
@@ -3919,6 +3919,15 @@ export function App() {
                     onClick={() => setDonateOpen(false)}
                   >
                     关闭
+                  </button>
+                  <button
+                    className="donate-modal-primary"
+                    onClick={() => {
+                      setDonateModalSuppressed(true)
+                      setDonateOpen(false)
+                    }}
+                  >
+                    已扫码，不再显示
                   </button>
                 </div>
               </div>
