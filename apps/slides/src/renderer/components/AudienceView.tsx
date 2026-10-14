@@ -174,6 +174,7 @@ export function AudienceView() {
   // Navigation input sent back to the presenter (this side doesn't change state); Esc ends the whole show
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.('[data-media-controls]')) return
       if (e.key === 'Escape') {
         e.preventDefault()
         window.slidesApi.audienceNav('exit')

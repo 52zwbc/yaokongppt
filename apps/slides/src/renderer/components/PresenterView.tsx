@@ -278,6 +278,7 @@ export function PresenterView({
   // Keyboard navigation (capture beats the editor's generic shortcuts; keys match SlideShowView)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.('[data-media-controls]')) return
       const r = reduceShowKey(showKeysRef.current, e.key)
       if (!r) return
       e.preventDefault()

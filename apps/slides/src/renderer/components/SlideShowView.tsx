@@ -397,6 +397,9 @@ export function SlideShowView({
   // Escape while open; the slide grid closes on Escape instead of ending the show.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Media control bar owns its keys (arrow-seek/volume); the capture
+      // listener would otherwise turn the page under the gesture.
+      if ((e.target as HTMLElement | null)?.closest?.('[data-media-controls]')) return
       if (menuRef.current) return
       if (gridRef.current) {
         if (e.key === 'Escape') {

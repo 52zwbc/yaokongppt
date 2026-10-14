@@ -112,19 +112,15 @@ export function ShowMediaLayer({
         const onPause = () => setPlaying((p) => ({ ...p, [n.sourceId]: false }))
         if (media.kind === 'video') {
           return (
-            <video
+            <VideoPlayer
               key={n.sourceId}
-              ref={ref(n.sourceId)}
               src={media.dataUrl}
               style={style}
-              playsInline
               muted={muted}
-              onClick={(e) => {
-                e.stopPropagation()
-                toggle(e.currentTarget)
-              }}
+              setRef={ref(n.sourceId)}
               onPlay={onPlay}
               onPause={onPause}
+              onToggle={(el) => toggle(el)}
             />
           )
         }
@@ -161,7 +157,213 @@ export function ShowMediaLayer({
   )
 }
 
-/** OOXML media call semantics: playFrom(0.0) restarts, togglePause flips, stop rewinds. */
+/** mm:ss for the player bar (NaN/negative from unloaded metadata shows 0:00). */
+export function formatTime(sec: number): string {
+  if (!Number.isFinite(sec) || sec < 0) sec = 0
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+/**
+ * Video with a web-like control bar: click (or hover) reveals play/pause,
+ * seek, volume and fullscreen. Everything stops at the capture phase so the
+ * show never turns the page under a control gesture; arrow keys on the
+ * sliders are guarded by the views' key handlers ([data-media-controls]).
+ */
+function VideoPlayer({
+  src,
+  style,
+  muted,
+  setRef,
+  onPlay,
+  onPause,
+  onToggle,
+}: {
+  src: string
+  style: React.CSSProperties
+  muted: boolean
+  setRef: (el: HTMLVideoElement | null) => void
+  onPlay: () => void
+  onPause: () => void
+  onToggle: (el: HTMLVideoElement) => void
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const [showBar, setShowBar] = useState(false)
+  const [paused, setPaused] = useState(true)
+  const [time, setTime] = useState(0)
+  const [dur, setDur] = useState(0)
+  const [vol, setVol] = useState(1)
+  const [isFs, setIsFs] = useState(false)
+  const hideTimer = useRef(0)
+  /** the show behind us owned document fullscreen before we took it */
+  const hadDocFs = useRef(false)
+
+  const poke = () => {
+    setShowBar(true)
+    window.clearTimeout(hideTimer.current)
+    hideTimer.current = window.setTimeout(() => setShowBar(false), 3000)
+  }
+  useEffect(() => () => window.clearTimeout(hideTimer.current), [])
+
+  // Esc leaves OUR fullscreen first (browser-owned); hand document fullscreen
+  // straight back to the show, otherwise its ~150ms loss timer ends the show.
+  useEffect(() => {
+    const onFs = () => {
+      if (document.fullscreenElement === wrapRef.current) {
+        setIsFs(true)
+        return
+      }
+      setIsFs(false)
+      if (hadDocFs.current) {
+        hadDocFs.current = false
+        void document.documentElement.requestFullscreen?.().catch(() => {})
+      }
+    }
+    document.addEventListener('fullscreenchange', onFs)
+    return () => document.removeEventListener('fullscreenchange', onFs)
+  }, [])
+
+  const goFs = () => {
+    if (document.fullscreenElement === wrapRef.current) {
+      void document.exitFullscreen().catch(() => {})
+      return
+    }
+    hadDocFs.current = !!document.fullscreenElement
+    void wrapRef.current?.requestFullscreen().catch(() => {})
+  }
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation()
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{ ...style, background: '#000' }}
+      onMouseMove={poke}
+      onMouseLeave={() => {
+        window.clearTimeout(hideTimer.current)
+        setShowBar(false)
+      }}
+    >
+      <video
+        ref={(el) => {
+          videoRef.current = el
+          setRef(el)
+        }}
+        src={src}
+        style={{ width: '100%', height: '100%', display: 'block' }}
+        playsInline
+        muted={muted}
+        onClick={(e) => {
+          e.stopPropagation()
+          const el = e.currentTarget
+          poke()
+          onToggle(el)
+        }}
+        onPlay={() => {
+          setPaused(false)
+          onPlay()
+        }}
+        onPause={() => {
+          setPaused(true)
+          onPause()
+        }}
+        onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+        onLoadedMetadata={(e) => {
+          setDur(e.currentTarget.duration)
+          setVol(e.currentTarget.volume)
+        }}
+        onVolumeChange={(e) => setVol(e.currentTarget.volume)}
+      />
+      {showBar && (
+        <div
+          data-media-controls
+          onClick={stop}
+          onMouseDown={stop}
+          onMouseUp={stop}
+          onKeyDown={stop}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 10px',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+            color: '#fff',
+            fontSize: 12,
+          }}
+        >
+          <button
+            aria-label={paused ? 'Play' : 'Pause'}
+            onClick={(e) => {
+              e.stopPropagation()
+              const el = videoRef.current
+              if (el) onToggle(el)
+            }}
+            style={barBtn}
+          >
+            {paused ? '\u25B6' : '\u23F8'}
+          </button>
+          <span style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+            {formatTime(time)} / {formatTime(dur)}
+          </span>
+          <input
+            aria-label="Seek"
+            type="range"
+            min={0}
+            max={dur || 0}
+            step={0.1}
+            value={Math.min(time, dur || 0)}
+            onChange={(e) => {
+              const el = videoRef.current
+              if (el) el.currentTime = parseFloat(e.target.value)
+            }}
+            style={{ flex: 1, accentColor: '#fff' }}
+          />
+          <span aria-label="Volume" style={{ fontSize: 14 }}>
+            {'\uD83D\uDD0A'}
+          </span>
+          <input
+            aria-label="Volume"
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={vol}
+            onChange={(e) => {
+              const el = videoRef.current
+              if (el) el.volume = parseFloat(e.target.value)
+            }}
+            style={{ width: 70, accentColor: '#fff' }}
+          />
+          <button
+            aria-label={isFs ? 'Exit fullscreen' : 'Fullscreen'}
+            onClick={(e) => {
+              e.stopPropagation()
+              goFs()
+            }}
+            style={barBtn}
+          >
+            {isFs ? '\u2715' : '\u26F6'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const barBtn: React.CSSProperties = {
+  background: 'transparent',
+  border: 'none',
+  color: '#fff',
+  cursor: 'pointer',
+  fontSize: 15,
+  lineHeight: 1,
+  padding: '2px 6px',
+}
 export function runMediaCommand(el: HTMLMediaElement, effect: MediaCommand['effect']): void {
   switch (effect) {
     case 'mediaPlay':
