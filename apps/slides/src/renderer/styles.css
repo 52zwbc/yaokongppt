@@ -6538,6 +6538,58 @@ body.show-curtain::after {
   pointer-events: none;
 }
 
+/* Show toolbar (prev/next/roll-call/exit): bottom-center, touch-sized for classroom screens */
+.slideshow .ss-toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 60;
+}
+
+.slideshow .ss-tool {
+  width: 64px;
+  height: 64px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.55);
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  touch-action: manipulation;
+  transition: background 0.12s ease;
+}
+
+.slideshow .ss-tool:hover {
+  background: rgba(20, 20, 20, 0.82);
+}
+
+.slideshow .ss-tool:active {
+  transform: scale(0.94);
+}
+
+.slideshow .ss-rollcall {
+  background: rgba(37, 99, 235, 0.7);
+}
+
+.slideshow .ss-rollcall:hover {
+  background: rgba(37, 99, 235, 0.92);
+}
+
+.slideshow .ss-exit {
+  background: rgba(20, 20, 20, 0.55);
+}
+
 .slideshow .ss-end {
   color: var(--slides-show-ink-75);
   font-size: 15px;

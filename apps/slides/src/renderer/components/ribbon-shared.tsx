@@ -304,11 +304,6 @@ export interface Props {
   onZoom: (z: number | ((current: number) => number)) => void
   showThumbs: boolean
   onToggleThumbs: () => void
-  aiOpen: boolean
-  onToggleAi: () => void
-  /** Push a preset instruction to the AI panel and expand it (autoRun executes immediately) */
-  /** slideShot: attach the current slide's rendering so the model sees the page (AI Beautify) */
-  onAiPreset: (text: string, opts?: { slideShot?: boolean }) => void
   /** Shape gallery / Text Box pick: enter canvas draw mode (crosshair; click = default size, drag = custom, Esc cancels) */
   onPickShape: (kind: InsertKind) => void
   /** Open the image picker dialog and insert into the current page */
@@ -582,7 +577,6 @@ export interface Props {
 /** Ribbon locals + props handed to the extracted tab components; rebuilt every render. */
 export interface RibbonTabCtx extends Pick<
   Props,
-  | 'aiOpen'
   | 'brushMode'
   | 'canDistribute'
   | 'canPaste'
@@ -605,7 +599,6 @@ export interface RibbonTabCtx extends Pick<
   | 'onAddSection'
   | 'onAddSlide'
   | 'onAddSlideWithLayout'
-  | 'onAiPreset'
   | 'onAlign'
   | 'onDirection'
   | 'onArrange'
@@ -645,7 +638,6 @@ export interface RibbonTabCtx extends Pick<
   | 'onStrike'
   | 'onTextColor'
   | 'onTextToggle'
-  | 'onToggleAi'
   | 'onToggleFormat'
   | 'onToggleScreenRecord'
   | 'recording'

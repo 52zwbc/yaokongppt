@@ -12,11 +12,9 @@ import type {
 import { animGalleryKind } from './animation-play'
 import { handleSlidesControl, type ControlRequest } from './control'
 import type {
-  AiSettings,
   AnimEffectKind,
   AnimTrigger,
   AnimationItem,
-  AttachmentMeta,
   EditChartOp,
   EditParagraph,
   EditStrokeOp,
@@ -75,8 +73,6 @@ import { ContextMenu } from './components/ContextMenu'
 import { ShapeGalleryPopover } from './components/ShapeGalleryPopover'
 import { PasteOptionsFloater } from './components/PasteOptionsFloater'
 import {
-  AiAskPopover,
-  AiAskTrigger,
   type AnchorRect,
   type AskTarget,
 } from './components/AiAskPopover'
@@ -103,15 +99,11 @@ import {
   useAutoSavePref,
   type AiScopeQuoteData,
   type WordArtPreset,
-  aiPanelInitiallyOpen,
-  rememberAiPanelOpen,
 } from '@genoffice/ui'
 import type { ChartPresetDef, IconDef, SmartArtDef } from './insert-presets'
-import { GensparkMark, IconAiBeautify, IconAiFactCheck, IconAiImage } from './components/icons'
 import { ToastHost } from './components/toast'
 import { showToast } from './components/toast-bus'
 import { t, useI18n } from './i18n/locale'
-import { AiPanel } from './ai/AiPanel'
 import { ChartDataDialog } from './components/ChartDataDialog'
 import type { BrushFormat } from './format-brush'
 import { isTextUndoTarget, shouldRouteHistoryToDeck } from './undo-routing'
@@ -394,8 +386,6 @@ export function App() {
       refreshMissingFonts()
     }
   }, [missingFonts, refreshMissingFonts])
-  /** AiPanel reset key: incremented only on applyOpen (open/new file), not on draft path updates */
-  const [aiPanelKey, setAiPanelKey] = useState(0)
   /** Theme body default font (fallback for the font box when the selection has no text element) */
   const [defaultFont, setDefaultFont] = useState<string | null>(null)
   const [current, setCurrent] = useState(0)
@@ -477,18 +467,8 @@ export function App() {
   useEffect(() => {
     window.slidesApi.setAutoSavePref?.(autoSave)
   }, [autoSave])
-  const [showAi, setShowAi] = useState(() => aiPanelInitiallyOpen('ai-slides-show-ai'))
   const [showFormat, setShowFormat] = useState(false)
   const [showBgFormat, setShowBgFormat] = useState(false)
-  const [aiSettings, setAiSettings] = useState<AiSettings | null>(null)
-  const [aiPreset, setAiPreset] = useState<{
-    text: string
-    nonce: number
-    autoRun?: boolean
-    displayText?: string
-    attachments?: AttachmentMeta[]
-    slideShot?: boolean
-  } | null>(null)
   const [_recent, setRecent] = useState<string[]>([])
   const consumePendingRef = useRef<ReturnType<typeof window.slidesApi.consumePendingOpen> | null>(
     null,
@@ -691,14 +671,14 @@ export function App() {
       const viewportW =
         el?.clientWidth ||
         stageViewportSize.w ||
-        window.innerWidth - (showThumbs ? thumbsW : 0) - (showAi ? 360 : 34)
+        window.innerWidth - (showThumbs ? thumbsW : 0)
       const viewportH = el?.clientHeight || stageViewportSize.h || window.innerHeight - 150
       const availW = viewportW - 56
       // -72: vertical padding is 48 (AI-bar headroom) + 32, minus the same 8px slack as width
       const availH = viewportH - 72
       return Math.min(availW / s.widthPx, availH / s.heightPx)
     },
-    [showThumbs, showAi, stageViewportSize.h, stageViewportSize.w, thumbsW],
+    [showThumbs, stageViewportSize.h, stageViewportSize.w, thumbsW],
   )
   /** Fit zoom for display: rawFit clamped to the 0.1–1.5 auto-fit range */
   const fitZoom = useCallback(
@@ -868,7 +848,6 @@ export function App() {
       setDirty(false)
       setInkTool('select')
       setUngroupedSets([])
-      setAiPanelKey((k) => k + 1)
       // Queue anchors belong to the deck that was open; another file invalidates them all
       setEditQueue([])
       setAskState(null)
@@ -1282,49 +1261,10 @@ export function App() {
     [],
   )
 
-  useEffect(() => {
-    const loadSettings = () => void window.slidesApi.getAiSettings().then(setAiSettings)
-    loadSettings()
-    return window.slidesApi.onAiSettingsChanged?.(loadSettings)
-  }, [])
-
   // Recent files for the start screen
   useEffect(() => {
     if (slides.length === 0) void window.slidesApi.getRecentFiles().then(setRecent)
   }, [slides.length])
-
-  const toggleAi = useCallback(() => {
-    setShowAi((v) => {
-      rememberAiPanelOpen('ai-slides-show-ai', !v)
-      return !v
-    })
-  }, [])
-
-  const pushAiPreset = useCallback(
-    (
-      text: string,
-      autoRun = true,
-      displayText?: string,
-      attachments?: AttachmentMeta[],
-      slideShot?: boolean,
-      scope?: AiScopeQuoteData,
-    ) => {
-      setShowAi(() => {
-        rememberAiPanelOpen('ai-slides-show-ai', true)
-        return true
-      })
-      setAiPreset({
-        text,
-        nonce: Date.now(),
-        autoRun,
-        displayText,
-        ...(attachments && attachments.length > 0 ? { attachments } : {}),
-        ...(slideShot ? { slideShot } : {}),
-        ...(scope ? { scope } : {}),
-      })
-    },
-    [],
-  )
 
   // ── AI element edit queue ──────────────────────────────────────────────
   // Session-only: annotations are a scratchpad for the next AI submission, not
@@ -1447,11 +1387,6 @@ export function App() {
           status: 'pending',
         }
         return [...prev, item]
-      })
-      // The queue lives in the panel; annotating with it collapsed would look like nothing happened
-      setShowAi(() => {
-        rememberAiPanelOpen('ai-slides-show-ai', true)
-        return true
       })
     },
     [askState, askTargets, current],
@@ -3323,9 +3258,6 @@ export function App() {
         onZoom={previewZoom}
         showThumbs={showThumbs}
         onToggleThumbs={() => setShowThumbs((v) => !v)}
-        aiOpen={showAi}
-        onToggleAi={toggleAi}
-        onAiPreset={(text, opts) => pushAiPreset(text, true, undefined, undefined, opts?.slideShot)}
         onPickShape={pickShape}
         onInsertImage={() => void insertImage()}
         onFormatBackground={openBgFormat}
@@ -3627,57 +3559,6 @@ export function App() {
       />
 
       <div className="app-main">
-        {slide && viewMode !== 'reading' && viewMode !== 'sorter' && (
-          <div className={`ai-dock${showAi && aiSettings ? '' : ' collapsed'}`}>
-            {/* always mounted once settings load: collapse must not drop state or in-flight runs */}
-            {aiSettings ? (
-              <AiPanel
-                key={aiPanelKey}
-                slides={slides}
-                current={current}
-                selectedIds={selectedIds}
-                deckEmpty={deckEmpty}
-                images={images}
-                applySlide={applySlide}
-                applyDeck={applyDeck}
-                fitWidthPx={FIT_WIDTH}
-                settings={aiSettings}
-                preset={aiPreset}
-                open={showAi}
-                onExpand={toggleAi}
-                onCollapse={toggleAi}
-                onUndo={() => void undo()}
-                onPathChange={(p) => {
-                  setPath(p)
-                  setDirty(false)
-                }}
-                onBeforeRun={flushNotes}
-                currentFilePath={path}
-                editQueue={editQueue}
-                onQueueEditInstruction={(key, instruction) =>
-                  setEditQueue((prev) =>
-                    prev.map((it) => (it.key === key ? { ...it, instruction } : it)),
-                  )
-                }
-                onQueueRemove={(key) => setEditQueue((prev) => prev.filter((it) => it.key !== key))}
-                onQueueClear={() => setEditQueue([])}
-                onQueueFocus={focusQueueItem}
-                onQueueConsume={(keys) =>
-                  setEditQueue((prev) => prev.filter((it) => !keys.includes(it.key)))
-                }
-              />
-            ) : (
-              <button
-                className="ai-rail"
-                onClick={toggleAi}
-                data-tip={t('appAiRailExpand')}
-                aria-label={t('appAiRailExpand')}
-              >
-                <GensparkMark size={22} />
-              </button>
-            )}
-          </div>
-        )}
         <div className="app-content">
           {missingFonts.length > 0 && (
             <div className="font-missing-banner">
@@ -4009,57 +3890,6 @@ export function App() {
                             : undefined
                         }
                       >
-                        <div className="stage-ai-bar">
-                          <div className="stage-ai-group">
-                            <button
-                              className={`stage-ai-btn${showAi ? ' active' : ''}`}
-                              data-tip={t('aiOpenAssistant')}
-                              onClick={toggleAi}
-                            >
-                              <GensparkMark size={14} />
-                              <span>源项目 AI</span>
-                            </button>
-                            {/* Same one-click presets as the Home tab; hidden instead of
-                        disabled while the deck has no real content */}
-                            {!deckEmpty && (
-                              <>
-                                <span className="stage-ai-divider" aria-hidden="true" />
-                                <button
-                                  className="stage-ai-btn"
-                                  data-tip={t('aiBeautifyBtn')}
-                                  onClick={() =>
-                                    pushAiPreset(
-                                      t('aiBeautifyPrompt'),
-                                      true,
-                                      undefined,
-                                      undefined,
-                                      true,
-                                    )
-                                  }
-                                >
-                                  <IconAiBeautify size={14} />
-                                  <span>{t('aiBeautifyBtn')}</span>
-                                </button>
-                                <button
-                                  className="stage-ai-btn"
-                                  data-tip={t('aiFactCheckBtn')}
-                                  onClick={() => pushAiPreset(t('aiFactCheckPrompt'))}
-                                >
-                                  <IconAiFactCheck size={14} />
-                                  <span>{t('aiFactCheckBtn')}</span>
-                                </button>
-                                <button
-                                  className="stage-ai-btn"
-                                  data-tip={t('aiImageBtn')}
-                                  onClick={() => pushAiPreset(t('aiImagePrompt'))}
-                                >
-                                  <IconAiImage size={14} />
-                                  <span>{t('aiImageBtn')}</span>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
                         <div
                           ref={stageScaleRef}
                           className="stage-scale"
@@ -4763,50 +4593,6 @@ export function App() {
         </div>
       )}
 
-      {!askState &&
-        !editing &&
-        !editingCell &&
-        !cropTarget &&
-        !cutoutTarget &&
-        inkTool === 'select' &&
-        selectedIds.length > 0 && (
-          <AiAskTrigger getAnchorRect={getAskTriggerRect} onOpen={openAskPopover} />
-        )}
-
-      {askState && askTargets.length > 0 && (
-        <AiAskPopover
-          targets={askTargets}
-          getAnchorRect={getAskAnchorRect}
-          queueFull={editQueue.length >= EDIT_QUEUE_MAX}
-          onSubmit={(instruction) => {
-            askClosedAtRef.current = Date.now()
-            commitAsk(instruction)
-          }}
-          onCancel={() => {
-            askClosedAtRef.current = Date.now()
-            setAskState(null)
-          }}
-          onSendNow={
-            askState.itemKey
-              ? undefined
-              : (instruction) => {
-                  askClosedAtRef.current = Date.now()
-                  setAskState(null)
-                  // Carry the popover's frozen durable targets into the run.
-                  // The canvas keeps parse-time source ids for rendering, while
-                  // the AI inventory and edit tools speak durable ids.
-                  pushAiPreset(
-                    buildSelectionInstruction(current, askTargets, instruction),
-                    true,
-                    instruction,
-                    undefined,
-                    undefined,
-                    askScopeQuote(),
-                  )
-                }
-          }
-        />
-      )}
 
       {ctxMenu && (
         <ContextMenu

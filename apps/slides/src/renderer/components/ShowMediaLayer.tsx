@@ -289,11 +289,11 @@ function VideoPlayer({
             bottom: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '6px 10px',
+            gap: 14,
+            padding: '12px 16px',
             background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
             color: '#fff',
-            fontSize: 12,
+            fontSize: 18,
           }}
         >
           <button
@@ -321,9 +321,9 @@ function VideoPlayer({
               const el = videoRef.current
               if (el) el.currentTime = parseFloat(e.target.value)
             }}
-            style={{ flex: 1, accentColor: '#fff' }}
+            style={{ flex: 1, height: 28, accentColor: '#fff' }}
           />
-          <span aria-label="Volume" style={{ fontSize: 14 }}>
+          <span aria-label="Volume" style={{ fontSize: 22 }}>
             {'\uD83D\uDD0A'}
           </span>
           <input
@@ -337,7 +337,7 @@ function VideoPlayer({
               const el = videoRef.current
               if (el) el.volume = parseFloat(e.target.value)
             }}
-            style={{ width: 70, accentColor: '#fff' }}
+            style={{ width: 110, height: 28, accentColor: '#fff' }}
           />
           <button
             aria-label={isFs ? 'Exit fullscreen' : 'Fullscreen'}
@@ -360,9 +360,9 @@ const barBtn: React.CSSProperties = {
   border: 'none',
   color: '#fff',
   cursor: 'pointer',
-  fontSize: 15,
+  fontSize: 26,
   lineHeight: 1,
-  padding: '2px 6px',
+  padding: '8px 12px',
 }
 export function runMediaCommand(el: HTMLMediaElement, effect: MediaCommand['effect']): void {
   switch (effect) {

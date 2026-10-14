@@ -400,6 +400,13 @@ export function SlideShowView({
       // Media control bar owns its keys (arrow-seek/volume); the capture
       // listener would otherwise turn the page under the gesture.
       if ((e.target as HTMLElement | null)?.closest?.('[data-media-controls]')) return
+      // Toolbar buttons keep native Space/Enter activation; the global
+      // Space→next binding must not double-fire behind them.
+      if (
+        (e.key === ' ' || e.key === 'Enter') &&
+        (e.target as HTMLElement | null)?.closest?.('.ss-toolbar')
+      )
+        return
       if (menuRef.current) return
       if (gridRef.current) {
         if (e.key === 'Escape') {
@@ -568,6 +575,61 @@ export function SlideShowView({
           )}
           <div className="ss-counter">
             {pos + 1} / {order.length}
+          </div>
+          <div className="ss-toolbar">
+            <button
+              type="button"
+              className="ss-tool"
+              onClick={(e) => {
+                e.stopPropagation()
+                prev()
+              }}
+              data-tip="上一页"
+              aria-label="上一页"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="ss-tool"
+              onClick={(e) => {
+                e.stopPropagation()
+                next()
+              }}
+              data-tip="下一页"
+              aria-label="下一页"
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              className="ss-tool ss-rollcall"
+              onClick={(e) => {
+                e.stopPropagation()
+                void window.slidesApi.rollCallPick().catch(() => {})
+              }}
+              data-tip="随机点名"
+              aria-label="随机点名"
+            >
+              <svg viewBox="0 0 24 24" width="30" height="30" fill="#fff" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="ss-tool ss-exit"
+              onClick={(e) => {
+                e.stopPropagation()
+                exitRef.current()
+              }}
+              data-tip="退出放映"
+              aria-label="退出放映"
+            >
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
           </div>
           {blank !== 'none' && <div className={blank === 'black' ? 'ss-black' : 'ss-white'} />}
         </>

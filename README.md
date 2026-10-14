@@ -8,7 +8,7 @@
 
 - 仓库：https://github.com/52zwbc/yaokongppt
 - 框架：Electron + electron-vite + electron-builder（monorepo，npm workspaces）
-- 主应用：`apps/slides`（包名 `yaokongppt`，当前版本 0.6.5，幻灯片模块已同步源项目 genoffice@`c8e9467`）
+- 主应用：`apps/slides`（包名 `yaokongppt`，当前版本 0.6.6，幻灯片模块已同步源项目 genoffice@`c8e9467`）
 - License：Apache-2.0
 
 ## 功能
