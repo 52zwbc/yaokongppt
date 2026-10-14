@@ -16,6 +16,7 @@ import type { RenderNode, RenderSlide, ShapeRenderNode } from '@genoffice/pptx-r
 import type { AnimationItem, LinkTargetOp, ShapeKey, TransitionKind } from '../../shared/ipc'
 import { AnimatedSlideStage, useAnimPlayer } from './AnimatedSlide'
 import { ShowMediaLayer } from './ShowMediaLayer'
+import { InkLayer, type InkStroke } from './ShowInk'
 import { useI18n } from '../i18n/locale'
 import { MorphStage } from './MorphStage'
 import { ContextMenu } from './ContextMenu'
@@ -104,6 +105,38 @@ export function SlideShowView({
   const linksRef = useRef<Array<Map<string, LinkTargetOp>>>([])
   /** Per-page run hyperlinks: "sourceId:para:run" → target; hit-tested against layout glyph runs */
   const runLinksRef = useRef<Array<Map<string, LinkTargetOp>>>([])
+  // ── Show ink (pen annotation) ───────────────────────────────────────────
+  // Per-page strokes keyed by original slide index; they survive a page turn
+  // (hidden until you return to that page) and the pen mode exits on turn.
+  const PEN_COLORS = ['#e53935', '#43a047', '#1e88e5', '#fdd835', '#ffffff', '#212121']
+  const [penOn, setPenOn] = useState(false)
+  const [penColor, setPenColor] = useState('#e53935')
+  /** 画笔模式：'fg'=前景（在幻灯片上标注）；'bg'=背景（点颜色把整屏设为纯色，白板/黑板）。 */
+  const [penMode, setPenMode] = useState<'fg' | 'bg'>('fg')
+  /** 白板背景色（null=无背景）。翻页/返回时清空。 */
+  const [bgColor, setBgColor] = useState<string | null>(null)
+  const [curStrokes, setCurStrokes] = useState<InkStroke[]>([])
+  const curStrokesRef = useRef<InkStroke[]>([])
+  const strokesByPageRef = useRef<Record<number, InkStroke[]>>({})
+  const drawingRef = useRef(false)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const lastIdxRef = useRef<number>(-1)
+  useEffect(() => {
+    curStrokesRef.current = curStrokes
+  }, [curStrokes])
+  // On page turn: stash the leaving page's strokes, load the entering page's,
+  // and drop out of pen mode (strokes reappear when you come back).
+  useEffect(() => {
+    const leaving = lastIdxRef.current
+    if (leaving >= 0) strokesByPageRef.current[leaving] = curStrokesRef.current
+    const entering = order[pos] ?? -1
+    setCurStrokes(entering >= 0 ? strokesByPageRef.current[entering] ?? [] : [])
+    setPenOn(false)
+    setPenMode('fg')
+    setBgColor(null)
+    lastIdxRef.current = entering
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pos])
   /** Morph tween in progress: previous/target page original indexes + replay nonce */
   const [morph, setMorph] = useState<{ fromIdx: number; toIdx: number; nonce: number } | null>(null)
   /** How the current page was entered: forward = initial state playing step by step, others = all-finished state */
@@ -393,6 +426,57 @@ export function SlideShowView({
     [order, pos, slide],
   )
 
+  // ── Pen drawing (normalized 0..1 coords over the slide frame) ────────────
+  const normPoint = useCallback((e: React.PointerEvent): { x: number; y: number } | null => {
+    const r = frameRef.current?.getBoundingClientRect()
+    if (!r || r.width === 0 || r.height === 0) return null
+    return {
+      x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)),
+      y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)),
+    }
+  }, [])
+
+  const onInkDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (!penOn) return
+      const p = normPoint(e)
+      if (!p) return
+      e.currentTarget.setPointerCapture(e.pointerId)
+      drawingRef.current = true
+      setCurStrokes((ss) => [...ss, { color: penColor, points: [p.x, p.y] }])
+    },
+    [penOn, penColor, normPoint],
+  )
+
+  const onInkMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!penOn || !drawingRef.current) return
+      const p = normPoint(e)
+      if (!p) return
+      setCurStrokes((ss) => {
+        const last = ss[ss.length - 1]
+        if (!last) return ss
+        return [...ss.slice(0, -1), { ...last, points: [...last.points, p.x, p.y] }]
+      })
+    },
+    [penOn, normPoint],
+  )
+
+  const onInkUp = useCallback(() => {
+    drawingRef.current = false
+  }, [])
+
+  const undoInk = useCallback(() => setCurStrokes((ss) => ss.slice(0, -1)), [])
+  const clearInk = useCallback(() => setCurStrokes([]), [])
+  /** 点颜色：前景模式设画笔色；背景模式把整屏设为该纯色（白板/黑板）。 */
+  const onColorPick = useCallback(
+    (c: string) => {
+      if (penMode === 'bg') setBgColor(c)
+      else setPenColor(c)
+    },
+    [penMode],
+  )
+
   // Keyboard navigation (capture beats the editor's generic shortcuts). The menu owns
   // Escape while open; the slide grid closes on Escape instead of ending the show.
   useEffect(() => {
@@ -456,11 +540,11 @@ export function SlideShowView({
       setKeys(INITIAL_SHOW_KEYS)
       return
     }
-    next()
   }
 
   if (!slide) return null
   const fitW = Math.round(Math.min(size.w, (size.h * slide.widthPx) / slide.heightPx))
+  const fitH = Math.round((fitW * slide.heightPx) / slide.widthPx)
   // Rehearsal timer bar values: current page dwell (including earlier revisit accumulation) + total elapsed
   const rehearse = rehearseRef.current
   const sinceEntered = rehearse ? Date.now() - rehearse.enteredAt : 0
@@ -515,9 +599,11 @@ export function SlideShowView({
       }}
     >
       {!covered ? null : ended ? (
-        <div className="ss-end">{t('paneShowEndedClick')}</div>
+        <div className="ss-end" onClick={() => exitRef.current()}>{t('paneShowEndedClick')}</div>
       ) : (
         <>
+          {/* 白板/黑板背景层：整屏纯色，盖在幻灯片之下。背景色翻页/返回时清空。 */}
+          {bgColor && <div className="ss-whiteboard" style={{ background: bgColor }} />}
           {morph && slides[morph.fromIdx] && slides[morph.toIdx] ? (
             <div key={`morph-${morph.nonce}`} className="ss-frame">
               <MorphStage
@@ -536,32 +622,50 @@ export function SlideShowView({
               className={`ss-frame${anim.kind !== 'none' ? ` ss-anim-${anim.kind}` : ''}`}
             >
               <div
+                ref={frameRef}
                 style={{ position: 'relative', width: fitW, margin: '0 auto' }}
                 onClick={(e) => {
+                  if (penOn) return
                   const target = linkAt(e)
-                  if (!target) return // Bubbles to the root onClick → next page
+                  if (!target) return // No link here: nothing advances (nav buttons only)
                   e.stopPropagation()
                   followLink(target)
                 }}
                 onMouseMove={(e) => {
+                  if (penOn) return
                   e.currentTarget.style.cursor = linkAt(e) ? 'pointer' : ''
                 }}
               >
-                <AnimatedSlideStage
-                  slide={slide}
-                  images={images}
-                  width={fitW}
-                  states={player.states}
-                />
-                <ShowMediaLayer
-                  key={order[pos]!}
-                  slide={slide}
-                  slideIndex={order[pos]!}
-                  width={fitW}
-                  commands={player.mediaCmds}
-                  epoch={player.epoch}
-                  mediaBase={player.mediaBase}
-                />
+                {/* 白板模式下隐藏幻灯片内容，只留纯色背景 + 笔触 */}
+                {!bgColor && (
+                  <AnimatedSlideStage
+                    slide={slide}
+                    images={images}
+                    width={fitW}
+                    states={player.states}
+                  />
+                )}
+                {!bgColor && (
+                  <ShowMediaLayer
+                    key={order[pos]!}
+                    slide={slide}
+                    slideIndex={order[pos]!}
+                    width={fitW}
+                    commands={player.mediaCmds}
+                    epoch={player.epoch}
+                    mediaBase={player.mediaBase}
+                  />
+                )}
+                <InkLayer strokes={curStrokes} laser={null} width={fitW} height={fitH} />
+                {penOn && (
+                  <div
+                    className="ss-ink-capture"
+                    onPointerDown={onInkDown}
+                    onPointerMove={onInkMove}
+                    onPointerUp={onInkUp}
+                    onPointerLeave={onInkUp}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -577,6 +681,60 @@ export function SlideShowView({
             {pos + 1} / {order.length}
           </div>
           <div className="ss-toolbar">
+            {penOn && (
+              <>
+                <button
+                  type="button"
+                  className={`ss-tool ss-penmode${penMode === 'bg' ? ' ss-mode-bg' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setPenMode((m) => (m === 'fg' ? 'bg' : 'fg'))
+                  }}
+                  data-tip={penMode === 'fg' ? '当前：前景（点颜色设画笔色）' : '当前：背景（点颜色设整屏纯色）'}
+                  aria-label="前景/背景切换"
+                >
+                  {penMode === 'fg' ? '前景' : '背景'}
+                </button>
+                {PEN_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`ss-color${penMode !== 'bg' && penColor === c ? ' ss-color-on' : ''}`}
+                    style={{ background: c }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onColorPick(c)
+                    }}
+                    data-tip={penMode === 'bg' ? '把整屏背景设为该颜色' : '选择画笔颜色'}
+                    aria-label={penMode === 'bg' ? '设置背景颜色' : '选择画笔颜色'}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="ss-tool"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    undoInk()
+                  }}
+                  data-tip="撤销上一笔"
+                  aria-label="撤销上一笔"
+                >
+                  ↶
+                </button>
+                <button
+                  type="button"
+                  className="ss-tool"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    clearInk()
+                  }}
+                  data-tip="清空本页笔触"
+                  aria-label="清空本页笔触"
+                >
+                  ⌫
+                </button>
+              </>
+            )}
             <button
               type="button"
               className="ss-tool"
@@ -615,6 +773,18 @@ export function SlideShowView({
                 <circle cx="12" cy="8" r="4" />
                 <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4z" />
               </svg>
+            </button>
+            <button
+              type="button"
+              className={`ss-tool${penOn ? ' ss-pen-on' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setPenOn((v) => !v)
+              }}
+              data-tip="画笔标注"
+              aria-label="画笔标注"
+            >
+              ✎
             </button>
             <button
               type="button"

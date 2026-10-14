@@ -130,10 +130,14 @@ describe('slide show context menu clicks', () => {
     })
     expect(show.querySelector('.ctx-menu')).toBeNull()
     expect(counter(show)).toBe('1 / 3')
+  })
+
+  it('a plain click never advances (page turns only come from buttons/keys)', async () => {
+    const { show } = await mountShow()
     act(() => {
       show.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 }))
     })
-    expect(counter(show)).toBe('2 / 3')
+    expect(counter(show)).toBe('1 / 3')
   })
 
   it('a click while blacked out restores the slide instead of advancing', async () => {

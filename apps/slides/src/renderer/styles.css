@@ -6527,7 +6527,7 @@ body.show-curtain::after {
 
 .slideshow .ss-counter {
   position: absolute;
-  right: 14px;
+  left: 14px;
   bottom: 10px;
   font-size: 12px;
   color: var(--slides-show-ink-40);
@@ -6538,12 +6538,28 @@ body.show-curtain::after {
   pointer-events: none;
 }
 
-/* Show toolbar (prev/next/roll-call/exit): bottom-center, touch-sized for classroom screens */
+/* Pen whiteboard: fullscreen solid color under the slide (bg mode) */
+.slideshow .ss-whiteboard {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Pen drawing capture layer (over the slide frame while pen is on) */
+.slideshow .ss-ink-capture {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* Show toolbar (pen palette + prev/next/roll-call/pen/exit): bottom-right, touch-sized */
 .slideshow .ss-toolbar {
   position: absolute;
-  left: 50%;
+  right: 18px;
   bottom: 18px;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -6588,6 +6604,44 @@ body.show-curtain::after {
 
 .slideshow .ss-exit {
   background: rgba(20, 20, 20, 0.55);
+}
+
+.slideshow .ss-pen-on {
+  background: #e53935;
+  border-color: #e53935;
+}
+
+.slideshow .ss-color {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  touch-action: manipulation;
+  flex-shrink: 0;
+}
+
+.slideshow .ss-color-on {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.slideshow .ss-penmode {
+  width: auto;
+  min-width: 64px;
+  height: 64px;
+  padding: 0 14px;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 32px;
+}
+
+.slideshow .ss-penmode.ss-mode-bg {
+  background: #ffd54f;
+  color: #222;
+  border-color: #ffd54f;
 }
 
 .slideshow .ss-end {
